@@ -1,0 +1,22 @@
+;-----------------------------------------------------
+;  Rainbow Infrared Color Table
+;  almanydesigns.com/grx
+
+units: ºC
+step: 10
+product: IR
+
+
+color: 50 115 5 118
+color: 40 247 4 246
+color: 30 132 6 194
+color: 20 2 0 118
+color: 0 0 243 235
+color: -10 0 140 39
+color: -15  2 126 4
+color: -30 253 254 3
+color: -50  200 140 0
+color: -60 171 87 0
+color: -70  116 4 0
+color: -90 247 1 16
+color: -110 255 255 255

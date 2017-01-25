@@ -1,0 +1,20 @@
+;-----------------------------------------------------
+;  'CIMMS' Infrared Color Table
+;  almanydesigns.com/grx
+
+units: ºC
+step: 10
+product: IR
+
+
+
+color: 50 31 31 31
+color: 30 0 113 113
+color: 0  31 255 255
+color: -30 0 0 115
+color: -40 31 241 40
+color: -50 255 255 31
+color: -60 255 0 0
+color: -70 0 0 0
+color: -90 255 255 255
+color: -110 145 31 145

@@ -66,26 +66,26 @@ class DataRequestTest(unittest.TestCase):
         req = DataRequest(self.sattype, self.sector)
         self.assertEqual(len(req), len(self.mock_datasets))
 
-    @patch('weatherpy.goessat.nc.Dataset')
-    def test_should_be_able_to_get_dataset_by_timestamp(self, nc):
+    @patch('weatherpy.goessat.plotter')
+    def test_should_be_able_to_get_dataset_by_timestamp(self, plotter):
         req = DataRequest(self.sattype, self.sector)
         ds = req[datetime(2016, 1, 28, 6, 30)]
-        nc.assert_called_with('EAST-CONUS_4km_WV_20160128_0630.gini-OPENDAP')
+        plotter.assert_called_with('EAST-CONUS_4km_WV_20160128_0630.gini-OPENDAP')
 
-    @patch('weatherpy.goessat.nc.Dataset')
-    def test_should_be_able_to_get_dataset_by_index(self, nc):
+    @patch('weatherpy.goessat.plotter')
+    def test_should_be_able_to_get_dataset_by_index(self, plotter):
         req = DataRequest(self.sattype, self.sector)
         ds_pos = req[2]
-        nc.assert_called_with('EAST-CONUS_4km_WV_20160128_0715.gini-OPENDAP')
+        plotter.assert_called_with('EAST-CONUS_4km_WV_20160128_0715.gini-OPENDAP')
 
         ds_neg = req[-1]
-        nc.assert_called_with('EAST-CONUS_4km_WV_20160128_0745.gini-OPENDAP')
+        plotter.assert_called_with('EAST-CONUS_4km_WV_20160128_0745.gini-OPENDAP')
 
-    @patch('weatherpy.goessat.nc.Dataset')
-    def test_should_be_able_to_get_dataset_by_dataset_name(self, nc):
+    @patch('weatherpy.goessat.plotter')
+    def test_should_be_able_to_get_dataset_by_dataset_name(self, plotter):
         req = DataRequest(self.sattype, self.sector)
         ds = req('EAST-CONUS_4km_WV_20160128_0630.gini')
-        nc.assert_called_with('EAST-CONUS_4km_WV_20160128_0630.gini-OPENDAP')
+        plotter.assert_called_with('EAST-CONUS_4km_WV_20160128_0630.gini-OPENDAP')
 
     def test_should_throw_error_if_out_of_bounds_index(self):
         with self.assertRaises(DatasetAccessException):
