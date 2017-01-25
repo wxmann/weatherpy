@@ -27,6 +27,11 @@ class GINIPlotter(object):
         self._plotdata = dataset.variables[self.sattype][0]
         self._x = self.dataset.variables['x'][:]
         self._y = self.dataset.variables['y'][:]
+
+        self._time = self.dataset.variables['time']
+        if len(self._time) != 1:
+            raise ValueError("Invalid dataset! Contains no or more than one timestamps.")
+
         self._geog = self.dataset.variables['LambertConformal']
 
         x0, x1, y0, y1 = self.lim
@@ -37,6 +42,17 @@ class GINIPlotter(object):
                                              self._geog.standard_parallel,
                                              r_earth=self._geog.earth_radius,
                                              drawer=mapproj.cartopy)
+
+    @property
+    def timestamp(self):
+        timeval = self._time[:][0]
+        # Note: we do this weird since for some odd reason, the GINI time unit
+        # format is incompatible with num2date function. Ay de mi! But we know it's
+        # milliseconds since the Epoch, at least for now.
+        try:
+            return nc.num2date(timeval, self._time.units)
+        except ValueError:
+            return nc.num2date(timeval, 'milliseconds since 1970-01-01T00:00:00Z')
 
     @property
     def pixels(self):
@@ -61,6 +77,7 @@ class GINIPlotter(object):
                   cmap=colortable_to_use.cmap, norm=colortable_to_use.norm)
         if extent is not None:
             ax.set_extent(extent)
+        return ax
 
     @property
     def _is_vis(self):
