@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 from datetime import datetime
 
-import matplotlib.pyplot as plt
 import netCDF4 as nc
 import numpy as np
 from siphon.catalog import TDSCatalog
@@ -14,12 +13,12 @@ from weatherpy import mapproj
 def plotter(url, sattype):
     dataset = nc.Dataset(url)
     try:
-        yield PlotSession(dataset, sattype)
+        yield GINIPlotter(dataset, sattype)
     finally:
         dataset.close()
 
 
-class PlotSession(object):
+class GINIPlotter(object):
     _KM_TO_M_MULTIPLIER = 1000
 
     def __init__(self, dataset, sattype):
@@ -50,7 +49,7 @@ class PlotSession(object):
 
     @property
     def lim(self):
-        return tuple(val * PlotSession._KM_TO_M_MULTIPLIER
+        return tuple(val * GINIPlotter._KM_TO_M_MULTIPLIER
                      for val in [min(self._x), max(self._x), min(self._y), max(self._y)])
 
     def setplot(self, extent=None, colortable=None, res='medium'):
@@ -67,9 +66,6 @@ class PlotSession(object):
     def _is_vis(self):
         return self.sattype == 'VIS'
 
-    def show(self):
-        plt.show()
-
 
 def pixel_to_temp(pixel, unit='C'):
     r"""
@@ -77,7 +73,8 @@ def pixel_to_temp(pixel, unit='C'):
     provided by http://www.goes.noaa.gov/enhanced.html.
 
     :param pixel: pixel brightness
-    :param unit: unit of output temperature (default: Celsius)
+    :param unit: unit of output temperature (C for Celsius, F for Fahrenheit, K for Kelvin)
+    (default: Celsius)
     :return: brightness temperature
     """
     if pixel >= 176:
@@ -98,14 +95,14 @@ class DataRequest(object):
         self.sector = sector
         self.sattype = sattype.upper()
         self._request_date = request_date
-        self._initialize_request_date = datetime.utcnow().date()
+        self._current_date_utc = datetime.utcnow().date()
         self._catalog = None
         self._catalog_datasets = None
         self._initialize_thredds_catalog()
 
     @property
     def request_date(self):
-        return self._request_date or self._initialize_request_date
+        return self._request_date or self._current_date_utc
 
     @request_date.setter
     def request_date(self, newdate):

@@ -1,6 +1,9 @@
+import os
 from collections import namedtuple
 
 from matplotlib import colors
+
+import config
 
 colortable = namedtuple('colortable', 'cmap norm')
 rgb = namedtuple('rgb', 'r g b')
@@ -109,12 +112,16 @@ def load_colortable(name, palfile):
 
 
 class Repo(object):
+    @staticmethod
+    def _get_rel_path(palette_file):
+        return os.sep.join(['', 'colortable-palettes', palette_file])
+
     files = {
-        'IR_navy': './colortable-palettes/IR_navy.pal',
-        'IR_rainbow': './colortable-palettes/IR_rainbow.pal',
-        'IR_rammb': './colortable-palettes/IR_rammb.pal',
-        'IR4': './colortable-palettes/IR4.pal',
-        'VIS_depth': './colortable-palettes/Visible-depth.pal'
+        'IR_navy': 'IR_navy.pal',
+        'IR_rainbow': 'IR_rainbow.pal',
+        'IR_rammb': 'IR_rammb.pal',
+        'IR4': 'IR4.pal',
+        'VIS_depth': 'Visible-depth.pal'
     }
 
     def __init__(self):
@@ -122,7 +129,7 @@ class Repo(object):
 
     def __getattr__(self, item):
         try:
-            return load_colortable(item, Repo.files[item])
+            return load_colortable(item, config.ROOT_PROJECT_DIR + Repo._get_rel_path(Repo.files[item]))
         except KeyError:
             raise InvalidColortableException("Invalid colortable provided: {}".format(item))
 
