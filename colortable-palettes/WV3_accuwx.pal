@@ -1,0 +1,14 @@
+;-----------------------------------------------------
+;  'AccuWeather' WaterVapor Color Table
+;  almanydesigns.com/grx
+
+units: 256
+step: 16
+product: WV
+
+color: 130 245 0 0  254 250 3
+color: 155 254 250 3  6 4 121
+color: 165 6 4 121 
+color: 180 255 255 255 
+color: 210 0 121 0
+color: 256 0 238 234

@@ -1,3 +1,4 @@
+import functools
 import os
 from collections import namedtuple
 
@@ -9,7 +10,28 @@ colortable = namedtuple('colortable', 'cmap norm')
 rgb = namedtuple('rgb', 'r g b')
 rgba = namedtuple('rgba', 'r g b a')
 
-_max_rgb = 255.
+_min_rgb = 0
+_max_rgb = 255
+
+
+def to_rgba(rgb_tup):
+    if isinstance(rgb_tup, rgba):
+        return rgb_tup
+    return rgba(rgb_tup.r, rgb_tup.g, rgb_tup.b, 1.0)
+
+
+def to_fractional(rgb_tup):
+    if isinstance(rgb_tup, rgb):
+        return rgb(_rgb_frac(rgb_tup.r), _rgb_frac(rgb_tup.g), _rgb_frac(rgb_tup.b))
+    else:
+        return rgba(_rgb_frac(rgb_tup.r), _rgb_frac(rgb_tup.g), _rgb_frac(rgb_tup.b), rgb_tup.a)
+
+
+def relative_pos(val, minval, maxval):
+    return (val - minval) / (maxval - minval)
+
+
+_rgb_frac = functools.partial(relative_pos, minval=_min_rgb, maxval=_max_rgb)
 
 
 ###################################################
@@ -30,25 +52,45 @@ def _rawdict2cmapdict(colors_dict):
         'blue': [],
         'alpha': []
     }
-    maxbndy = max(colors_dict)
-    minbndy = min(colors_dict)
+    max_bound = max(colors_dict)
+    min_bound = min(colors_dict)
 
-    if maxbndy == minbndy:
+    if max_bound == min_bound:
         raise ValueError("Color map requires more than one color")
 
-    for bndy in colors_dict:
-        clrs = colors_dict[bndy]
-        lvl = (bndy - minbndy) / (maxbndy - minbndy)
-        hasalpha = hasattr(clrs[0], 'a')
-        alphas = [clr.a if hasalpha else 1.0 for clr in clrs]
-        relclrs = [rgba(clr.r / _max_rgb, clr.g / _max_rgb, clr.b / _max_rgb, alpha) for clr, alpha in
-                   zip(clrs, alphas)]
-        if len(relclrs) == 1:
-            relclrs *= 2
-        cmap_dict['red'].append((lvl, relclrs[0].r, relclrs[1].r))
-        cmap_dict['green'].append((lvl, relclrs[0].g, relclrs[1].g))
-        cmap_dict['blue'].append((lvl, relclrs[0].b, relclrs[1].b))
-        cmap_dict['alpha'].append((lvl, relclrs[0].a, relclrs[1].a))
+    bounds_in_order = sorted(colors_dict.keys())
+
+    for lobound, hibound in zip(bounds_in_order, bounds_in_order[1:] + bounds_in_order[-1:]):
+        locolors = colors_dict[lobound]
+        hicolors = colors_dict[hibound]
+        if not locolors or not hicolors:
+            raise ValueError("Invalid colormap file, empty colors.")
+        if len(locolors) < 2:
+            locolors.append(hicolors[0])
+
+        lobound_frac = relative_pos(lobound, min_bound, max_bound)
+        hibound_frac = relative_pos(hibound, min_bound, max_bound)
+        locolor1 = to_fractional(to_rgba(locolors[0]))
+        locolor2 = to_fractional(to_rgba(locolors[1]))
+        hicolor1 = to_fractional(to_rgba(hicolors[0]))
+
+        def _append_colors(color):
+            attr = color[0]
+            # the first element
+            if not cmap_dict[color]:
+                cmap_dict[color].append((lobound_frac, getattr(locolor1, attr), getattr(locolor1, attr)))
+                cmap_dict[color].append((hibound_frac, getattr(locolor2, attr), getattr(hicolor1, attr)))
+            # the last element
+            elif locolors == hicolors:
+                cmap_dict[color].append((hibound_frac, getattr(locolor2, attr), getattr(locolor2, attr)))
+            # all other elements
+            else:
+                cmap_dict[color].append((hibound_frac, getattr(locolor2, attr), getattr(hicolor1, attr)))
+
+        _append_colors('red')
+        _append_colors('green')
+        _append_colors('blue')
+        _append_colors('alpha')
 
     for k in cmap_dict:
         cmap_dict[k] = sorted(cmap_dict[k], key=lambda tup: tup[0])
@@ -88,7 +130,7 @@ def _parse_pal_line(line):
             rgba_vals = rgba_vals[index:]
             clrs.append(_getcolor(rgba_vals, isrgba))
 
-        return bndy, tuple(clrs)
+        return bndy, clrs
 
     return None, None
 
@@ -121,7 +163,10 @@ class Repo(object):
         'IR_rainbow': 'IR_rainbow.pal',
         'IR_rammb': 'IR_rammb.pal',
         'IR4': 'IR4.pal',
-        'VIS_depth': 'Visible-depth.pal'
+        'IR_cimms2': 'IR_cimms2.pal',
+        'VIS_depth': 'Visible-depth.pal',
+        'WV3_accuwx': 'WV3_accuwx.pal',
+        'WV_noaa': 'WV_noaa.pal'
     }
 
     def __init__(self):
@@ -139,8 +184,17 @@ class InvalidColortableException(Exception):
 
 
 _repo = Repo()
+
+# IR satellite
 ir_navy = _repo.IR_navy
 ir_rainbow = _repo.IR_rainbow
 ir_rammb = _repo.IR_rammb
 ir4 = _repo.IR4
+ir_cimms = _repo.IR_cimms2
+
+# VIS satellite
 vis_depth = _repo.VIS_depth
+
+# WV satellite
+wv_accuwx = _repo.WV3_accuwx
+wv_noaa = _repo.WV_noaa

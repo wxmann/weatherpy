@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from datetime import datetime
 
+import functools
 import netCDF4 as nc
 import numpy as np
 from siphon.catalog import TDSCatalog
@@ -24,14 +25,11 @@ class GINIPlotter(object):
     def __init__(self, dataset, sattype):
         self.dataset = dataset
         self.sattype = sattype.upper()
-        self._plotdata = dataset.variables[self.sattype][0]
         self._x = self.dataset.variables['x'][:]
         self._y = self.dataset.variables['y'][:]
 
-        self._time = self.dataset.variables['time']
-        if len(self._time) != 1:
-            raise ValueError("Invalid dataset! Contains no or more than one timestamps.")
-
+        self._timestamp = self._get_timestamp()
+        self._pixels = self._get_pixels()
         self._geog = self.dataset.variables['LambertConformal']
 
         x0, x1, y0, y1 = self.lim
@@ -43,33 +41,52 @@ class GINIPlotter(object):
                                              r_earth=self._geog.earth_radius,
                                              drawer=mapproj.cartopy)
 
-    @property
-    def timestamp(self):
-        timeval = self._time[:][0]
-        # Note: we do this weird since for some odd reason, the GINI time unit
+    def _get_timestamp(self):
+        timevar = self.dataset.variables['time']
+        if len(timevar) != 1:
+            raise ValueError("Invalid dataset! Contains no or more than one timestamps.")
+        timeval = timevar[:][0]
+        # Note: we do this funky thing since for some reason, the GINI time unit
         # format is incompatible with num2date function. Ay de mi! But we know it's
-        # milliseconds since the Epoch, at least for now.
+        # milliseconds since the Epoch, at least for now, so we'll just hardcode that.
         try:
-            return nc.num2date(timeval, self._time.units)
+            return nc.num2date(timeval, timevar.units)
         except ValueError:
             return nc.num2date(timeval, 'milliseconds since 1970-01-01T00:00:00Z')
 
     @property
-    def pixels(self):
-        pix = self._plotdata & 0xff
-        if self._is_vis:
-            return pix
-        else:
+    def timestamp(self):
+        return self._timestamp
+
+    def _get_pixels(self):
+        var = 'IR_WV' if self.sattype == 'WV' else self.sattype
+        plotvar = self.dataset.variables[var]
+        if len(plotvar) != 1:
+            raise ValueError("Invalid dataset! Contains no or more than one set of plot data.")
+
+        plotdata = plotvar[0]
+        pix = plotdata & 0xff
+        if self.sattype == 'IR':
             conversion = np.vectorize(pixel_to_temp, otypes=[np.float])
             return conversion(pix)
+        # only need this snippet if using a colortable with K as units.
+        # elif self.sattype == 'WV':
+            # conversion = np.vectorize(functools.partial(pixel_to_temp, unit='K'), otypes=[np.float])
+            # return conversion(pix)
+        else:
+            return pix
+
+    @property
+    def pixels(self):
+        return self._pixels
 
     @property
     def lim(self):
         return tuple(val * GINIPlotter._KM_TO_M_MULTIPLIER
                      for val in [min(self._x), max(self._x), min(self._y), max(self._y)])
 
-    def setplot(self, extent=None, colortable=None, res='medium'):
-        bw = colortable is None or self._is_vis
+    def make_plot(self, extent=None, colortable=None, res='medium'):
+        bw = colortable is None or self.sattype == 'VIS'
         colortable_to_use = colortables.vis_depth if bw else colortable
 
         ax = self._map.draw_map(res=res)
@@ -78,10 +95,6 @@ class GINIPlotter(object):
         if extent is not None:
             ax.set_extent(extent)
         return ax
-
-    @property
-    def _is_vis(self):
-        return self.sattype == 'VIS'
 
 
 def pixel_to_temp(pixel, unit='C'):
