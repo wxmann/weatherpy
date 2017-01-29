@@ -1,7 +1,6 @@
 from contextlib import contextmanager
 from datetime import datetime
 
-import functools
 import netCDF4 as nc
 import numpy as np
 from siphon.catalog import TDSCatalog
@@ -32,14 +31,10 @@ class GINIPlotter(object):
         self._pixels = self._get_pixels()
         self._geog = self.dataset.variables['LambertConformal']
 
-        x0, x1, y0, y1 = self.lim
-        self._map = mapproj.LambertConformal(self._geog.latitude_of_projection_origin,
-                                             self._geog.longitude_of_central_meridian,
-                                             x1 - x0,
-                                             y1 - y0,
-                                             self._geog.standard_parallel,
-                                             r_earth=self._geog.earth_radius,
-                                             drawer=mapproj.cartopy)
+        self._map = mapproj.LambertConformalMapper(self._geog.latitude_of_projection_origin,
+                                                   self._geog.longitude_of_central_meridian,
+                                                   self._geog.standard_parallel,
+                                                   r_earth=self._geog.earth_radius)
 
     def _get_timestamp(self):
         timevar = self.dataset.variables['time']
@@ -85,16 +80,17 @@ class GINIPlotter(object):
         return tuple(val * GINIPlotter._KM_TO_M_MULTIPLIER
                      for val in [min(self._x), max(self._x), min(self._y), max(self._y)])
 
-    def make_plot(self, extent=None, colortable=None, res='medium'):
+    def make_plot(self, mapper=None, colortable=None):
         bw = colortable is None or self.sattype == 'VIS'
         colortable_to_use = colortables.vis_depth if bw else colortable
 
-        ax = self._map.draw_map(res=res)
-        ax.imshow(self.pixels, extent=self.lim, origin='upper',
-                  cmap=colortable_to_use.cmap, norm=colortable_to_use.norm)
-        if extent is not None:
-            ax.set_extent(extent)
-        return ax
+        if mapper is None:
+            mapper = self._map
+        mapper.draw_default_map()
+        mapper.axes.imshow(self.pixels, extent=self.lim, origin='upper',
+                           transform=self._map.crs,
+                           cmap=colortable_to_use.cmap, norm=colortable_to_use.norm)
+        return mapper.axes
 
 
 def pixel_to_temp(pixel, unit='C'):
