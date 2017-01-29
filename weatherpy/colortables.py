@@ -60,37 +60,39 @@ def _rawdict2cmapdict(colors_dict):
 
     bounds_in_order = sorted(colors_dict.keys())
 
-    for lobound, hibound in zip(bounds_in_order, bounds_in_order[1:] + bounds_in_order[-1:]):
-        locolors = colors_dict[lobound]
-        hicolors = colors_dict[hibound]
-        if not locolors or not hicolors:
-            raise ValueError("Invalid colormap file, empty colors.")
-        if len(locolors) < 2:
-            locolors.append(hicolors[0])
+    for i, bound in enumerate(bounds_in_order):
+        if i == len(bounds_in_order) - 1:
+            # last element, avoid having extra entries in the colortable map
+            pass
+        else:
+            lobound = bounds_in_order[i]
+            hibound = bounds_in_order[i+1]
+            locolors = colors_dict[lobound]
+            hicolors = colors_dict[hibound]
+            if not locolors or not hicolors:
+                raise ValueError("Invalid colormap file, empty colors.")
+            if len(locolors) < 2:
+                locolors.append(hicolors[0])
 
-        lobound_frac = relative_pos(lobound, min_bound, max_bound)
-        hibound_frac = relative_pos(hibound, min_bound, max_bound)
-        locolor1 = to_fractional(to_rgba(locolors[0]))
-        locolor2 = to_fractional(to_rgba(locolors[1]))
-        hicolor1 = to_fractional(to_rgba(hicolors[0]))
+            lobound_frac = relative_pos(lobound, min_bound, max_bound)
+            hibound_frac = relative_pos(hibound, min_bound, max_bound)
+            locolor1 = to_fractional(to_rgba(locolors[0]))
+            locolor2 = to_fractional(to_rgba(locolors[1]))
+            hicolor1 = to_fractional(to_rgba(hicolors[0]))
 
-        def _append_colors(color):
-            attr = color[0]
-            # the first element
-            if not cmap_dict[color]:
-                cmap_dict[color].append((lobound_frac, getattr(locolor1, attr), getattr(locolor1, attr)))
-                cmap_dict[color].append((hibound_frac, getattr(locolor2, attr), getattr(hicolor1, attr)))
-            # the last element
-            elif locolors == hicolors:
-                cmap_dict[color].append((hibound_frac, getattr(locolor2, attr), getattr(locolor2, attr)))
-            # all other elements
-            else:
-                cmap_dict[color].append((hibound_frac, getattr(locolor2, attr), getattr(hicolor1, attr)))
+            def _append_colors(color):
+                attr = color[0]
+                # the first element
+                if i == 0:
+                    cmap_dict[color].append((lobound_frac, getattr(locolor1, attr), getattr(locolor1, attr)))
+                    cmap_dict[color].append((hibound_frac, getattr(locolor2, attr), getattr(hicolor1, attr)))
+                else:
+                    cmap_dict[color].append((hibound_frac, getattr(locolor2, attr), getattr(hicolor1, attr)))
 
-        _append_colors('red')
-        _append_colors('green')
-        _append_colors('blue')
-        _append_colors('alpha')
+            _append_colors('red')
+            _append_colors('green')
+            _append_colors('blue')
+            _append_colors('alpha')
 
     for k in cmap_dict:
         cmap_dict[k] = sorted(cmap_dict[k], key=lambda tup: tup[0])
