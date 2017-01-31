@@ -117,5 +117,3 @@ class LambertConformal(MapProjection):
         proj = ccrs.LambertConformal(central_latitude=self.lat0, central_longitude=self.lon0,
                                      standard_parallels=stdparas, globe=globe)
         return plt.axes(projection=proj)
-
-

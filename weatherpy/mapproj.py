@@ -3,6 +3,7 @@ import warnings
 import cartopy.crs as ccrs
 import cartopy.feature as cfeat
 import matplotlib.pyplot as plt
+import weatherpy._mapproj_legacy as _legacy
 
 from weatherpy._pyhelpers import coalesce_kwargs
 
@@ -11,6 +12,9 @@ from weatherpy._pyhelpers import coalesce_kwargs
 # TODO: do we plan to use them anywhere?
 # atlantic_basin = EquidistantCylindrical(llcrnlat=5.0, llcrnlon=-105.0, urcrnlat=60, urcrnlon=-5.0)
 # north_america = LambertConformal(lat0=45, lon0=-100, width=11000000, height=8500000)
+
+EquidistantCylindrical = _legacy.EquidistantCylindrical
+LambertConformal = _legacy.LambertConformal
 
 
 class CartopyMapProjection(object):
@@ -32,14 +36,19 @@ class CartopyMapProjection(object):
 
     @extent.setter
     def extent(self, extent_coord):
-        if extent_coord is not None and len(extent_coord) != 4:
-            raise ValueError("Must have four coordinates for extent box")
-        self._extent = tuple(extent_coord)
-        if self._ax is not None:
-            self._ax.set_extent(self._extent)
+        if extent_coord is None:
+            self._extent = None
+            if self._ax is not None:
+                self._ax.set_global()
+        else:
+            if len(extent_coord) != 4:
+                raise ValueError("Must have four coordinates for extent box")
+            self._extent = tuple(extent_coord)
+            if self._ax is not None:
+                self._ax.set_extent(self._extent)
 
     @property
-    def axes(self):
+    def ax(self):
         return self._ax
 
     def initialize_drawing(self):
@@ -67,7 +76,7 @@ class CartopyMapProjection(object):
 
     def draw_gridlines(self, **kwargs):
         self.initialize_drawing()
-        self._ax.gridlines(**coalesce_kwargs(kwargs, linestyle='--', draw_labels=True))
+        self._ax.gridlines(**coalesce_kwargs(kwargs, linestyle='--', draw_labels=False))
 
     def draw_default_map(self):
         self.draw_coastlines()

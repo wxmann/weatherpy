@@ -64,8 +64,8 @@ class GINIPlotter(object):
         if self.sattype == 'IR':
             conversion = np.vectorize(pixel_to_temp, otypes=[np.float])
             return conversion(pix)
-        # only need this snippet if using a colortable with K as units.
-        # elif self.sattype == 'WV':
+            # only need this snippet if using a colortable with K as units.
+            # elif self.sattype == 'WV':
             # conversion = np.vectorize(functools.partial(pixel_to_temp, unit='K'), otypes=[np.float])
             # return conversion(pix)
         else:
@@ -80,17 +80,20 @@ class GINIPlotter(object):
         return tuple(val * GINIPlotter._KM_TO_M_MULTIPLIER
                      for val in [min(self._x), max(self._x), min(self._y), max(self._y)])
 
+    @property
+    def mapper(self):
+        return self._map
+
     def make_plot(self, mapper=None, colortable=None):
         bw = colortable is None or self.sattype == 'VIS'
         colortable_to_use = colortables.vis_depth if bw else colortable
 
         if mapper is None:
             mapper = self._map
-        mapper.draw_default_map()
-        mapper.axes.imshow(self.pixels, extent=self.lim, origin='upper',
-                           transform=self._map.crs,
-                           cmap=colortable_to_use.cmap, norm=colortable_to_use.norm)
-        return mapper.axes
+        mapper.initialize_drawing()
+        mapper.ax.imshow(self.pixels, extent=self.lim, origin='upper',
+                         transform=self._map.crs,
+                         cmap=colortable_to_use.cmap, norm=colortable_to_use.norm)
 
 
 def pixel_to_temp(pixel, unit='C'):
