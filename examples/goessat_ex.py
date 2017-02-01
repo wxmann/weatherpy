@@ -5,6 +5,7 @@ from matplotlib import patheffects
 
 from weatherpy import colortables
 from weatherpy import goessat
+from weatherpy import mapproj
 from weatherpy import plotutils
 
 
@@ -12,13 +13,13 @@ def latest_east_coast_wv():
     colortable = colortables.wv_accuwx
     req = goessat.DataRequest('WV', 'EAST-CONUS_4km')
 
-    with req[-1] as plotter:
-        mapper = plotter.mapper
-        mapper.extent = (-112.5, -70, 18.5, 52.5)
-        mapper.draw_coastlines()
-        mapper.draw_borders()
-        mapper.draw_states()
+    mapper = mapproj.lambertconformal()
+    mapper.extent = (-112.5, -70, 18.5, 52.5)
+    mapper.draw_coastlines()
+    mapper.draw_borders()
+    mapper.draw_states()
 
+    with req[-1] as plotter:
         plotter.make_plot(mapper=mapper, colortable=colortable)
         title_text = 'GOES-E {}\n{}'.format(plotter.sattype, plotter.timestamp.strftime('%Y %b %d\n%H:%M UTC'))
         plotutils.top_left_stamp(title_text, mapper,
@@ -60,4 +61,4 @@ def save_bunch_of_images_1():
             plt.clf()
 
 if __name__ == '__main__':
-    save_bunch_of_images_1()
+    latest_east_coast_wv()

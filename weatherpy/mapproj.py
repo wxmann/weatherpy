@@ -1,4 +1,5 @@
 import warnings
+from functools import wraps
 
 import cartopy.crs as ccrs
 import cartopy.feature as cfeat
@@ -16,24 +17,29 @@ EquidistantCylindrical = _legacy.EquidistantCylindrical
 LambertConformal = _legacy.LambertConformal
 
 
-class CartopyMapProjection(object):
-    _default_line_width = 0.5
-    _default_line_color = 'black'
-    _default_resolution = '50m'
+def to_mapper(func):
+    @wraps(func)
+    def func_wrapper(*args, **kwargs):
+        crs = func(*args, **kwargs)
+        return CartopyMapper(crs)
+    return func_wrapper
 
-    def __init__(self, *args, **kwargs):
-        self._crs = self._get_crs(*args, **kwargs)
+
+class CartopyMapper(object):
+    DEFAULT_LINE_WIDTH = 0.5
+    DEFAULT_LINE_COLOR = 'black'
+    DEFAULT_RESOLUTION = '50m'
+
+    def __init__(self, crs):
+        self._crs = crs
         self._extent = None
         self._ax = None
-        self._line_properties = {
-            'color': CartopyMapProjection._default_line_color,
-            'width': CartopyMapProjection._default_line_width,
-            'resolution': CartopyMapProjection._default_resolution
+        self.line_properties = {
+            'color': CartopyMapper.DEFAULT_LINE_COLOR,
+            'width': CartopyMapper.DEFAULT_LINE_WIDTH,
+            'resolution': CartopyMapper.DEFAULT_RESOLUTION
         }
         self._extent_set = False
-
-    def _get_crs(self, *args, **kwargs):
-        raise NotImplementedError("CRS implementations are delegated to subclasses.")
 
     @property
     def crs(self):
@@ -65,13 +71,10 @@ class CartopyMapProjection(object):
         return self._ax
 
     def set_line_property(self, prop, val):
-        if prop in self._line_properties:
-            self._line_properties[prop] = val
+        if prop in self.line_properties:
+            self.line_properties[prop] = val
         else:
             warnings.warn("There is no line property: {}. Nothing has been set.".format(prop))
-
-    def reset_drawing(self):
-        self._ax = plt.axes(projection=self.crs)
 
     def initialize_drawing(self):
         if not self._is_drawing_initialized():
@@ -83,21 +86,21 @@ class CartopyMapProjection(object):
 
     def draw_coastlines(self, **kwargs):
         self.initialize_drawing()
-        self._ax.coastlines(**coalesce_kwargs(kwargs, resolution=self._line_properties['resolution'],
-                                              color=self._line_properties['color'],
-                                              linewidth=self._line_properties['width']))
+        self._ax.coastlines(**coalesce_kwargs(kwargs, resolution=self.line_properties['resolution'],
+                                              color=self.line_properties['color'],
+                                              linewidth=self.line_properties['width']))
 
     def draw_borders(self, **kwargs):
         self.initialize_drawing()
-        self._ax.add_feature(cfeat.BORDERS, **coalesce_kwargs(kwargs, edgecolor=self._line_properties['color'],
-                                                              linewidth=self._line_properties['width']))
+        self._ax.add_feature(cfeat.BORDERS, **coalesce_kwargs(kwargs, edgecolor=self.line_properties['color'],
+                                                              linewidth=self.line_properties['width']))
 
     def draw_states(self, **kwargs):
         self.initialize_drawing()
         states = cfeat.NaturalEarthFeature(category='cultural', name='admin_1_states_provinces_lakes',
-                                           scale=self._line_properties['resolution'], facecolor='none')
-        self._ax.add_feature(states, **coalesce_kwargs(kwargs, edgecolor=self._line_properties['color'],
-                                                       linewidth=self._line_properties['width']))
+                                           scale=self.line_properties['resolution'], facecolor='none')
+        self._ax.add_feature(states, **coalesce_kwargs(kwargs, edgecolor=self.line_properties['color'],
+                                                       linewidth=self.line_properties['width']))
 
     def draw_gridlines(self, **kwargs):
         self.initialize_drawing()
@@ -110,33 +113,18 @@ class CartopyMapProjection(object):
         self.draw_gridlines()
 
 
-class EquidistantCylindricalMapper(CartopyMapProjection):
-    def _get_crs(self):
-        return ccrs.PlateCarree()
+@to_mapper
+def platecarree(central_longitude=0.0):
+    return ccrs.PlateCarree(central_longitude)
 
 
-class LambertConformalMapper(CartopyMapProjection):
-    def __init__(self, lat0, lon0, stdlat1=None, stdlat2=None, r_earth=6370997):
-        CartopyMapProjection.__init__(self, lat0, lon0, stdlat1, stdlat2, r_earth)
-        self._param_metadata = {
-            'lat0': lat0,
-            'lon0': lon0,
-            'stdlat1': stdlat1,
-            'stdlat2': stdlat2,
-            'r_earth': r_earth
-        }
+# default lat0/lon0 taken from the Cartopy LambertConformal CRS class.
+@to_mapper
+def lambertconformal(lat0=39.0, lon0=-96.0, stdlat1=None, stdlat2=None, r_earth=6370997):
+    globe = ccrs.Globe(ellipse='sphere', semimajor_axis=r_earth, semiminor_axis=r_earth)
+    stdparas = [stdlat1] if stdlat1 is not None else None
+    if stdparas is not None and stdlat2 is not None:
+        stdparas.append(stdlat2)
 
-    def _get_crs(self, lat0, lon0, stdlat1, stdlat2, r_earth):
-        globe = ccrs.Globe(ellipse='sphere', semimajor_axis=r_earth,
-                           semiminor_axis=r_earth)
-        stdparas = [stdlat1] if stdlat1 is not None else None
-        if stdparas is not None and stdlat2 is not None:
-            stdparas.append(stdlat2)
-        return ccrs.LambertConformal(central_latitude=lat0, central_longitude=lon0,
-                                     standard_parallels=stdparas, globe=globe)
-
-    def draw_gridlines(self, **kwargs):
-        warnings.warn('Gridline labels are not supported by Cartopy on Lambert Conformal projection')
-        if 'draw_labels' in kwargs:
-            kwargs['draw_labels'] = False
-        self._ax.gridlines(**coalesce_kwargs(kwargs, linestyle='--', draw_labels=False))
+    return ccrs.LambertConformal(central_latitude=lat0, central_longitude=lon0,
+                                 standard_parallels=stdparas, globe=globe)

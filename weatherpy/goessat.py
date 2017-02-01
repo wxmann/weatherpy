@@ -31,10 +31,10 @@ class GINIPlotter(object):
         self._pixels = self._get_pixels()
         self._geog = self.dataset.variables['LambertConformal']
 
-        self._map = mapproj.LambertConformalMapper(self._geog.latitude_of_projection_origin,
-                                                   self._geog.longitude_of_central_meridian,
-                                                   self._geog.standard_parallel,
-                                                   r_earth=self._geog.earth_radius)
+        self._map = mapproj.lambertconformal(lat0=self._geog.latitude_of_projection_origin,
+                                             lon0=self._geog.longitude_of_central_meridian,
+                                             stdlat1=self._geog.standard_parallel,
+                                             r_earth=self._geog.earth_radius)
 
     def _get_timestamp(self):
         timevar = self.dataset.variables['time']
