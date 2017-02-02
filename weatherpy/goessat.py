@@ -3,6 +3,7 @@ from datetime import datetime
 
 import netCDF4 as nc
 import numpy as np
+import re
 from siphon.catalog import TDSCatalog
 
 from weatherpy import colortables
@@ -119,6 +120,9 @@ def pixel_to_temp(pixel, unit='C'):
         return tempK
 
 
+_GINI_DATASET_TIMESTAMP_FRMT = '%Y%m%d_%H%M'
+
+
 class DataRequest(object):
     def __init__(self, sattype, sector, request_date=None):
         self.sector = sector
@@ -184,7 +188,7 @@ class DataRequest(object):
             raise DatasetAccessException("Index: {} out of bounds of breadth of datasets".format(index))
 
     def _get_from_ts(self, ts):
-        timestamp_str = ts.strftime('%Y%m%d_%H%M')
+        timestamp_str = ts.strftime(_GINI_DATASET_TIMESTAMP_FRMT)
         for potential_dataset in self._catalog_datasets:
             if timestamp_str in potential_dataset:
                 return potential_dataset
@@ -200,3 +204,9 @@ class DataRequest(object):
 
 class DatasetAccessException(Exception):
     pass
+
+
+def timestamp_from_dataset(dataset_name):
+    match = re.search(r'\d{8}_\d{4}', dataset_name)
+    matched_str = match.group(0)
+    return datetime.strptime(matched_str, _GINI_DATASET_TIMESTAMP_FRMT)

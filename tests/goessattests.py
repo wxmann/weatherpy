@@ -1,10 +1,9 @@
-import os
 import unittest
 from collections import OrderedDict
 from datetime import date, datetime
 from unittest.mock import patch, MagicMock
 
-from weatherpy.goessat import DataRequest, DatasetAccessException
+from weatherpy.goessat import DataRequest, DatasetAccessException, timestamp_from_dataset
 
 
 class DataRequestTest(unittest.TestCase):
@@ -100,6 +99,10 @@ class DataRequestTest(unittest.TestCase):
         with self.assertRaises(DatasetAccessException):
             DataRequest(self.sattype, self.sector)('this is an invalid dataset')
 
+    def test_should_get_timestamp_from_dataset_name(self):
+        ds_name = 'EAST-CONUS_4km_IR_20170201_0645.gini'
+        ts = timestamp_from_dataset(ds_name)
+        self.assertEqual(ts, datetime(2017, 2, 1, 6, 45))
 
 if __name__ == '__main__':
     unittest.main()

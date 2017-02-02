@@ -7,10 +7,11 @@ from weatherpy import colortables
 from weatherpy import goessat
 from weatherpy import mapproj
 from weatherpy import plotutils
+from weatherpy.goessat import timestamp_from_dataset
 
 
 def latest_east_coast_wv():
-    colortable = colortables.wv_accuwx
+    colortable = colortables.ir_rainbow
     req = goessat.DataRequest('WV', 'EAST-CONUS_4km')
 
     mapper = mapproj.lambertconformal()
@@ -30,7 +31,7 @@ def latest_east_coast_wv():
         plt.show()
 
 
-def save_bunch_of_images_1():
+def save_batch_wv_by_dt():
     colortable = colortables.wv_accuwx
     req_date = date(2017, 1, 23)
     req = goessat.DataRequest('WV', 'EAST-CONUS_4km', req_date)
@@ -60,5 +61,74 @@ def save_bunch_of_images_1():
                                            dpi=175)
             plt.clf()
 
+
+def save_batch_ir_by_timestamp():
+    colortable = colortables.ir_rainbow
+    req_date = date(2017, 1, 21)
+    req = goessat.DataRequest('IR', 'EAST-CONUS_4km', req_date)
+
+    min_time = datetime.combine(req_date, time(hour=21, minute=0))
+    max_time = datetime.combine(req_date, time(hour=23, minute=59))
+
+    for dataset_name in (dataset for dataset in req if
+                         min_time <= timestamp_from_dataset(dataset) <= max_time
+                         and timestamp_from_dataset(dataset).minute % 15 == 0):
+        with req(dataset_name) as plotter:
+            mapper = plotter.mapper
+            mapper.extent = (-98, -78, 27, 37)
+            mapper.draw_coastlines()
+            mapper.draw_borders()
+            mapper.draw_states()
+
+            plotter.make_plot(mapper=mapper, colortable=colortable)
+            title_text = 'GOES-E {}\n{}'.format(plotter.sattype, plotter.timestamp.strftime('%Y %b %d\n%H:%M UTC'))
+            plotutils.top_left_stamp(title_text, mapper,
+                                     fontsize='small',
+                                     weight='bold',
+                                     color='black',
+                                     path_effects=[patheffects.withStroke(linewidth=1, foreground="white")])
+
+            filename = 'ir-{}.png'.format(plotter.timestamp.strftime('%Y%d%m%H%M'))
+            directory = r'your/directory/here/'
+            plotutils.save_image_no_border(mapper.ax,
+                                           directory + filename,
+                                           dpi=175)
+            plt.clf()
+
+
+def save_batch_vis():
+    req_date = date(2017, 1, 21)
+    req = goessat.DataRequest('VIS', 'EAST-CONUS_1km', req_date)
+
+    min_time = datetime.combine(req_date, time(hour=21, minute=15))
+    max_time = datetime.combine(req_date, time(hour=23, minute=00))
+
+    for dataset_name in (dataset for dataset in req if
+                         min_time <= timestamp_from_dataset(dataset) <= max_time
+                         and timestamp_from_dataset(dataset).minute % 15 == 0):
+        with req(dataset_name) as plotter:
+            mapper = plotter.mapper
+            mapper.extent = (-98, -85, 27, 37)
+            mapper.draw_coastlines()
+            mapper.draw_borders()
+            mapper.draw_states()
+
+            plotter.make_plot(mapper=mapper)
+            title_text = 'GOES-E {}\n{}'.format(plotter.sattype, plotter.timestamp.strftime('%Y %b %d\n%H:%M UTC'))
+            plotutils.top_left_stamp(title_text, mapper,
+                                     fontsize='small',
+                                     weight='bold',
+                                     color='black',
+                                     path_effects=[patheffects.withStroke(linewidth=1, foreground="white")])
+
+            filename = 'vis-{}.png'.format(plotter.timestamp.strftime('%Y%d%m%H%M'))
+            directory = r'your/directory/here/'
+            plotutils.save_image_no_border(mapper.ax,
+                                           directory + filename,
+                                           dpi=175)
+
+            plt.clf()
+
 if __name__ == '__main__':
-    latest_east_coast_wv()
+    # latest_east_coast_wv()
+    save_batch_vis()
