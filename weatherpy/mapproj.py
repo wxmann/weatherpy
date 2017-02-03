@@ -106,7 +106,7 @@ class CartopyMapper(object):
 
     def draw_counties(self, **kwargs):
         counties = cartopy.io.shapereader.Reader(
-            '{}/shapefiles/cb_2015_us_county_20m.shp'.format(config.ROOT_PROJECT_DIR))
+            '{}/shapefiles/cb_2015_us_county_5m.shp'.format(config.ROOT_PROJECT_DIR))
         self._ax.add_geometries(counties.geometries(), ccrs.PlateCarree(),
                                 **coalesce_kwargs(
                                     kwargs, edgecolor=self.line_properties['color'],
