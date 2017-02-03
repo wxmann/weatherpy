@@ -1,6 +1,8 @@
 import warnings
 from functools import wraps
 
+import config
+import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeat
 import matplotlib.pyplot as plt
@@ -101,6 +103,15 @@ class CartopyMapper(object):
                                            scale=self.line_properties['resolution'], facecolor='none')
         self._ax.add_feature(states, **coalesce_kwargs(kwargs, edgecolor=self.line_properties['color'],
                                                        linewidth=self.line_properties['width']))
+
+    def draw_counties(self, **kwargs):
+        counties = cartopy.io.shapereader.Reader(
+            '{}/shapefiles/cb_2015_us_county_20m.shp'.format(config.ROOT_PROJECT_DIR))
+        self._ax.add_geometries(counties.geometries(), ccrs.PlateCarree(),
+                                **coalesce_kwargs(
+                                    kwargs, edgecolor=self.line_properties['color'],
+                                    linewidth=self.line_properties['width'],
+                                    facecolor='none'))
 
     def draw_gridlines(self, **kwargs):
         self.initialize_drawing()
