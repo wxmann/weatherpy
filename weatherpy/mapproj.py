@@ -70,9 +70,10 @@ class CartopyMapper(object):
 
     @property
     def ax(self):
+        # self.initialize_drawing()
         return self._ax
 
-    def set_line_property(self, prop, val):
+    def set_drawing_property(self, prop, val):
         if prop in self.line_properties:
             self.line_properties[prop] = val
         else:

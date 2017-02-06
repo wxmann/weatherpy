@@ -168,7 +168,8 @@ class Repo(object):
         'IR_cimms2': 'IR_cimms2.pal',
         'VIS_depth': 'Visible-depth.pal',
         'WV3_accuwx': 'WV3_accuwx.pal',
-        'WV_noaa': 'WV_noaa.pal'
+        'WV_noaa': 'WV_noaa.pal',
+        'refl_avl': 'refl_avl.pal'
     }
 
     def __init__(self):
@@ -200,3 +201,8 @@ vis_depth = _repo.VIS_depth
 # WV satellite
 wv_accuwx = _repo.WV3_accuwx
 wv_noaa = _repo.WV_noaa
+
+# Reflectivity
+refl_avl = _repo.refl_avl
+
+
