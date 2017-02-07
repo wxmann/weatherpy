@@ -110,7 +110,7 @@ def from_pal(palfile):
         for line in paldata:
             bndy, clrs = _parse_pal_line(line)
             if bndy is not None:
-                colorbar[int(bndy)] = clrs
+                colorbar[float(bndy)] = clrs
     return colorbar
 
 
@@ -169,7 +169,9 @@ class Repo(object):
         'VIS_depth': 'Visible-depth.pal',
         'WV3_accuwx': 'WV3_accuwx.pal',
         'WV_noaa': 'WV_noaa.pal',
-        'refl_avl': 'refl_avl.pal'
+        'refl_avl': 'refl_avl.pal',
+        'nws_default': 'NWS_Default.pal',
+        'radarscope': 'RadarScope.pal'
     }
 
     def __init__(self):
@@ -204,5 +206,6 @@ wv_noaa = _repo.WV_noaa
 
 # Reflectivity
 refl_avl = _repo.refl_avl
-
+nws = _repo.nws_default
+radarscope = _repo.radarscope
 

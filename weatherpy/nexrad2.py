@@ -1,5 +1,6 @@
 from contextlib import contextmanager
 
+import functools
 from siphon.catalog import TDSCatalog
 
 from weatherpy import colortables
@@ -37,14 +38,6 @@ class Level2RadarPlotter(object):
         self._radartype = radartype
         self._hires = hires
         self._sweep = sweep
-
-        # plotting variables
-        (self._az_all_sweeps,
-         self._rng,
-         self._data_all_sweeps,
-         self._radardata,
-         self._x,
-         self._y) = (None, None, None, None, None, None)
 
         self.set_radar(radartype or 'Reflectivity', hires, sweep)
 
@@ -99,23 +92,26 @@ class Level2RadarPlotter(object):
         self._az_all_sweeps = self.dataset.variables[self._varname('azimuth')][:]
         self._rng = self.dataset.variables[self._varname('distance')][:]
 
-        radar_var = self.dataset.variables[self._varname(self._radartype)]
-        self._data_all_sweeps = Level2RadarPlotter._transform_radar_pix(radar_var[:], radar_var)
+        self._radar_var = self.dataset.variables[self._varname(self._radartype)]
+        self._radar_all_sweeps = self._radar_var[:]
 
         # self._data_all_sweeps = np.ma.array(self._data_all_sweeps, mask=np.isnan(self._data_all_sweeps))
         self._calculate_for_sweep()
 
     @staticmethod
-    def _transform_radar_pix(radar_data, radar_var):
-        # This code still needs some work...
-        # Should follow form from, but haven't gotten it to work:
-        # http://nbviewer.jupyter.org/gist/dopplershift/356f2e14832e9b676207
-        return radar_data
+    def _transform_radar_pix(radar_var, raw_radar):
+        offset = radar_var.add_offset
+        scaling_factor = radar_var.scale_factor
+        convert = np.vectorize(functools.partial(_convert_pix, offset=offset, scale=scaling_factor),
+                               otypes=[np.float32])
+        processed_data = convert(raw_radar)
+        return processed_data
 
     def _calculate_for_sweep(self):
         az = self._az_all_sweeps[self._sweep]
         az_rad = np.deg2rad(az)[:, None]
-        self._radardata = self._data_all_sweeps[self._sweep]
+        self._radardata_raw = self._radar_all_sweeps[self._sweep]
+        self._radardata = Level2RadarPlotter._transform_radar_pix(self._radar_var, self._radardata_raw)
 
         # sin <-> x and cos <-> y since azimuth is measure from 0 deg == North.
         self._x = self._rng * np.sin(az_rad)
@@ -134,6 +130,25 @@ class Level2RadarPlotter(object):
         mapper.ax.pcolormesh(self._x, self._y, self._radardata,
                              cmap=colortable.cmap, norm=colortable.norm, zorder=0)
         return mapper
+
+    # only for debugging purposes. Not for public API consumption.
+    def draw_hist(self, convert=False):
+        import matplotlib.pyplot as plt
+        if not convert:
+            data = self._radardata_raw
+        else:
+            data = self._radardata
+        data = data.flatten()
+        plt.hist(data, 128)
+        plt.yscale('log', nonposy='clip')
+
+
+def _convert_pix(pix, offset, scale):
+    # inspired by http://nbviewer.jupyter.org/gist/dopplershift/356f2e14832e9b676207
+    # convert to unsigned by adding 256 but scaled by scale argument.
+    if pix <= offset:
+        return pix + 256. * scale
+    return pix
 
 
 class Nexrad2Request(TimeBasedTDSRequest):
