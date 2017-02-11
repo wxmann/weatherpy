@@ -1,19 +1,20 @@
-from contextlib import contextmanager
-
 import functools
-from siphon.catalog import TDSCatalog
+from contextlib import contextmanager
+from datetime import datetime, timedelta
+
+import cartopy.crs as ccrs
+import netCDF4 as nc
+import numpy as np
+from siphon.radarserver import RadarServer, get_radarserver_datasets
 
 from weatherpy import colortables
 from weatherpy import mapproj
-from weatherpy.thredds import TimeBasedTDSRequest
-
-import numpy as np
-import netCDF4 as nc
-import cartopy.crs as ccrs
+from weatherpy._pyhelpers import current_time_utc
+from weatherpy.thredds import DatasetAccessException
 
 
 @contextmanager
-def radarplot(url):
+def radaropen(url):
     dataset = nc.Dataset(url)
     try:
         yield Level2RadarPlotter(dataset)
@@ -94,8 +95,6 @@ class Level2RadarPlotter(object):
 
         self._radar_var = self.dataset.variables[self._varname(self._radartype)]
         self._radar_all_sweeps = self._radar_var[:]
-
-        # self._data_all_sweeps = np.ma.array(self._data_all_sweeps, mask=np.isnan(self._data_all_sweeps))
         self._calculate_for_sweep()
 
     @staticmethod
@@ -117,10 +116,14 @@ class Level2RadarPlotter(object):
         self._x = self._rng * np.sin(az_rad)
         self._y = self._rng * np.cos(az_rad)
 
+    def default_map(self):
+        mapper = mapproj.lambertconformal(lon0=self._origin[0], lat0=self._origin[1])
+        mapper.extent = self._extent
+        return mapper
+
     def make_plot(self, mapper=None, colortable=None):
         if mapper is None:
-            mapper = mapproj.lambertconformal(lon0=self._origin[0], lat0=self._origin[1])
-            mapper.extent = self._extent
+            mapper = self.default_map()
         elif isinstance(mapper.crs, ccrs.PlateCarree):
             raise ValueError("Radar images are not supported on the Plate Carree projection at this time.")
         if colortable is None:
@@ -151,22 +154,88 @@ def _convert_pix(pix, offset, scale):
     return pix
 
 
-class Nexrad2Request(TimeBasedTDSRequest):
-    def __init__(self, station, request_date=None):
+class Nexrad2Request(object):
+    def __init__(self, station, protocol='OPENDAP'):
         self._station = station
-        super(Nexrad2Request, self).__init__(request_date)
+        self._radarserver = _get_radar_server(host='http://thredds.ucar.edu/thredds/',
+                                              dataset='NEXRAD Level II Radar from IDD')
+        self._check_station(station)
+        self._protocol = protocol
+        self._datasets = functools.partial(_sorted_datasets, radarserver=self._radarserver)
 
-    def _initialize_thredds_catalog(self):
-        request_date_str = self.request_date.strftime('%Y%m%d')
-        url = 'http://thredds.ucar.edu/thredds/catalog/nexrad/level2/' \
-              '{}/{}/catalog.xml'.format(self._station, request_date_str)
-        # TODO: handle race condition around 0Z
-        self._catalog = TDSCatalog(url)
-        self._catalog_datasets = sorted(self._catalog.datasets.keys())
+    def _check_station(self, st):
+        if not _valid_station(st, self._radarserver):
+            raise DatasetAccessException("Invalid station: {}".format(st))
 
-    def _open(self, dataset_name, protocol='OPENDAP'):
-        if protocol != 'OPENDAP':
-            raise NotImplementedError("Only OPENDAP protocol supported at this time!")
-        dataset = self._catalog.datasets[dataset_name]
-        url = dataset.access_urls[protocol]
-        return radarplot(url)
+    def __getitem__(self, item):
+        if isinstance(item, int):
+            return self._get_from_index(item)
+        elif isinstance(item, datetime):
+            return self._get_from_timestamp(item)
+        elif isinstance(item, slice):
+            return self._get_from_slice(item)
+        else:
+            raise ValueError("Indexed dataset must be an integer or timestamp.")
+
+    def _get_from_index(self, index):
+        query = self._radarserver.query()
+        query.stations(self._station).all_times()
+        found_ds = self._datasets(query)[index]
+        if isinstance(found_ds, list):
+            return [ds.access_urls[self._protocol] for ds in found_ds]
+        return found_ds.access_urls[self._protocol]
+
+    def _get_from_timestamp(self, timestamp):
+        query = self._radarserver.query()
+        query.stations(self._station).time(timestamp)
+        ds = self._datasets(query)[0]
+        return ds.access_urls[self._protocol]
+
+    def _get_from_slice(self, sliceobj):
+        if sliceobj.step is not None:
+            raise ValueError("Slicing by step not supported at this time")
+        start = sliceobj.start
+        stop = sliceobj.stop
+
+        use_index = any([
+            isinstance(start, int) or isinstance(stop, int),
+            start is None and stop is None
+        ])
+        use_timestamp = isinstance(start, datetime) or isinstance(stop, datetime)
+        invalid = any([
+            use_index and use_timestamp,
+            not isinstance(start, (int, datetime)) and start is not None,
+            not isinstance(stop, (int, datetime)) and stop is not None
+        ])
+        if use_index:
+            return self._get_from_index(sliceobj)
+        elif use_timestamp:
+            if stop is None:
+                stop = current_time_utc()
+            if start is None:
+                # provide all data for last 90 days,
+                # if the radar server has data back to that point.
+                start = current_time_utc() - timedelta(days=90)
+            query = self._radarserver.query()
+            query.stations(self._station).time_range(start, stop)
+            found_ds = self._datasets(query)
+            return [ds.access_urls[self._protocol] for ds in found_ds]
+        elif invalid:
+            raise ValueError("Invalid slice, check your values")
+        else:
+            raise ValueError("Invalid slice, check your values")
+
+
+def _get_radar_server(host, dataset):
+    full_datasets = get_radarserver_datasets(host)
+    url = full_datasets[dataset].follow().catalog_url
+    return RadarServer(url)
+
+
+def _valid_station(st, radarserver):
+    return radarserver.validate_query(radarserver.query().stations(st).all_times())
+
+
+def _sorted_datasets(query, radarserver):
+    catalog = radarserver.get_catalog(query)
+    return sorted(catalog.datasets.values(), key=lambda ds: ds.name)
