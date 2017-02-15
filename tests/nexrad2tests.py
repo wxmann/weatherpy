@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from unittest import TestCase
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call
 
 from siphon.radarserver import RadarServer, RadarQuery
 
@@ -106,10 +106,10 @@ class TestNexrad2Request(TestCase):
 
         self.dummy_radar_server.query.assert_called_once_with()
         station_query = self.dummy_radar_server.query.return_value.stations
-        time_query = station_query.return_value.time_range
+        time_query = self.dummy_radar_server.query.return_value.time_range
         station_query.assert_called_with('KMUX')
         time_query.assert_called_with(early_time, later_time)
-        self.assertEqual(found, ['0-OPENDAP', '1-OPENDAP', '2-OPENDAP'])
+        self.assertEqual(found, ('0-OPENDAP', '1-OPENDAP', '2-OPENDAP'))
 
     @patch('weatherpy.nexrad2.current_time_utc')
     @patch('weatherpy.nexrad2._sorted_datasets')
@@ -124,10 +124,10 @@ class TestNexrad2Request(TestCase):
 
         self.dummy_radar_server.query.assert_called_once_with()
         station_query = self.dummy_radar_server.query.return_value.stations
-        time_query = station_query.return_value.time_range
+        time_query = self.dummy_radar_server.query.return_value.time_range
         station_query.assert_called_with('KMUX')
         time_query.assert_called_with(early_time, time_func.return_value)
-        self.assertEqual(found, ['0-OPENDAP', '1-OPENDAP', '2-OPENDAP'])
+        self.assertEqual(found, ('0-OPENDAP', '1-OPENDAP', '2-OPENDAP'))
 
     @patch('weatherpy.nexrad2.current_time_utc')
     @patch('weatherpy.nexrad2._sorted_datasets')
@@ -142,7 +142,26 @@ class TestNexrad2Request(TestCase):
 
         self.dummy_radar_server.query.assert_called_once_with()
         station_query = self.dummy_radar_server.query.return_value.stations
-        time_query = station_query.return_value.time_range
+        time_query = self.dummy_radar_server.query.return_value.time_range
         station_query.assert_called_with('KMUX')
         time_query.assert_called_with(time_func.return_value - timedelta(days=90), endtime)
-        self.assertEqual(found, ['0-OPENDAP', '1-OPENDAP', '2-OPENDAP'])
+        self.assertEqual(found, ('0-OPENDAP', '1-OPENDAP', '2-OPENDAP'))
+
+    @patch('weatherpy.nexrad2._sorted_datasets')
+    def test_should_query_radar_by_timestamp_range_with_step(self, ds_returned):
+        # TODO: figure out how to use side_effect here
+        ds_returned.return_value = [_create_dummy_dataset('1')]
+
+        req = Nexrad2Request('KMUX')
+        starttime = datetime(2017, 2, 12, 0, 0)
+        endtime = datetime(2017, 2, 12, 1, 0)
+        delta = timedelta(minutes=30)
+        found = req[starttime: endtime: delta]
+
+        self.dummy_radar_server.query.assert_called_once_with()
+        station_query = self.dummy_radar_server.query.return_value.stations
+        time_query = self.dummy_radar_server.query.return_value.time
+
+        station_query.assert_called_with('KMUX')
+        time_query.assert_has_calls([call(starttime), call(starttime + delta), call(endtime)])
+        self.assertEqual(found, ('1-OPENDAP', '1-OPENDAP', '1-OPENDAP'))

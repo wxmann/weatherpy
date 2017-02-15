@@ -14,10 +14,10 @@ from weatherpy.thredds import DatasetAccessException
 
 
 @contextmanager
-def radaropen(url):
+def radaropen(url, **kwargs):
     dataset = nc.Dataset(url)
     try:
-        yield Level2RadarPlotter(dataset)
+        yield Level2RadarPlotter(dataset, **kwargs)
     finally:
         dataset.close()
 
@@ -39,6 +39,7 @@ class Level2RadarPlotter(object):
         self._radartype = radartype
         self._hires = hires
         self._sweep = sweep
+        self._timestamp = None
 
         self.set_radar(radartype or 'Reflectivity', hires, sweep)
 
@@ -70,7 +71,13 @@ class Level2RadarPlotter(object):
     def sweep(self, sweepval):
         # TODO: validation on sweep in range
         self._sweep = sweepval
-        self._calculate_for_sweep()
+        self._fetch_data_for_sweep()
+
+    @property
+    def timestamp(self):
+        if self._timestamp is None:
+            self._calculate_timestamp()
+        return self._timestamp
 
     def _varname(self, prefix):
         if prefix == self._radartype:
@@ -83,19 +90,36 @@ class Level2RadarPlotter(object):
 
     def set_radar(self, radartype='Reflectivity', hires=True, sweep=0):
         if radartype not in Level2RadarPlotter.suffix_mapper:
-            raise ValueError("Invalid radar type {}".format(self._radartype))
+            raise ValueError("Invalid radar type {}".format(radartype))
         self._radartype = radartype
         self._hires = bool(hires)
         self._sweep = sweep
-        self._fetch_data()
+        self._fetch_data_for_sweep()
 
-    def _fetch_data(self):
-        self._az_all_sweeps = self.dataset.variables[self._varname('azimuth')][:]
+    def _fetch_data_for_sweep(self):
+        self._calculate_radar_pix()
+        self._calculate_xy()
+        self._calculate_timestamp()
+
+    def _calculate_radar_pix(self):
+        self._radarvar = self.dataset.variables[self._varname(self._radartype)]
+        self._radarraw = self._radarvar[self._sweep]
+        self._radardata = Level2RadarPlotter._transform_radar_pix(self._radarvar, self._radarraw)
+
+    def _calculate_xy(self):
+        self._az = self.dataset.variables[self._varname('azimuth')][self._sweep]
         self._rng = self.dataset.variables[self._varname('distance')][:]
+        az_rad = np.deg2rad(self._az)[:, None]
 
-        self._radar_var = self.dataset.variables[self._varname(self._radartype)]
-        self._radar_all_sweeps = self._radar_var[:]
-        self._calculate_for_sweep()
+        # sin <-> x and cos <-> y since azimuth is measure from 0 deg == North.
+        self._x = self._rng * np.sin(az_rad)
+        self._y = self._rng * np.cos(az_rad)
+
+    def _calculate_timestamp(self):
+        timevar = self.dataset.variables[self._varname('time')]
+        raw_time = timevar[self._sweep]
+        time_units = timevar.units.replace('msecs', 'milliseconds')
+        self._timestamp = nc.num2date(min(raw_time), time_units)
 
     @staticmethod
     def _transform_radar_pix(radar_var, raw_radar):
@@ -105,16 +129,6 @@ class Level2RadarPlotter(object):
                                otypes=[np.float32])
         processed_data = convert(raw_radar)
         return processed_data
-
-    def _calculate_for_sweep(self):
-        az = self._az_all_sweeps[self._sweep]
-        az_rad = np.deg2rad(az)[:, None]
-        self._radardata_raw = self._radar_all_sweeps[self._sweep]
-        self._radardata = Level2RadarPlotter._transform_radar_pix(self._radar_var, self._radardata_raw)
-
-        # sin <-> x and cos <-> y since azimuth is measure from 0 deg == North.
-        self._x = self._rng * np.sin(az_rad)
-        self._y = self._rng * np.cos(az_rad)
 
     def default_map(self):
         mapper = mapproj.lambertconformal(lon0=self._origin[0], lat0=self._origin[1])
@@ -138,7 +152,7 @@ class Level2RadarPlotter(object):
     def draw_hist(self, convert=False):
         import matplotlib.pyplot as plt
         if not convert:
-            data = self._radardata_raw
+            data = self._radarraw
         else:
             data = self._radardata
         data = data.flatten()
@@ -161,7 +175,7 @@ class Nexrad2Request(object):
                                               dataset='NEXRAD Level II Radar from IDD')
         self._check_station(station)
         self._protocol = protocol
-        self._datasets = functools.partial(_sorted_datasets, radarserver=self._radarserver)
+        self._get_datasets = functools.partial(_sorted_datasets, radarserver=self._radarserver)
 
     def _check_station(self, st):
         if not _valid_station(st, self._radarserver):
@@ -180,7 +194,7 @@ class Nexrad2Request(object):
     def _get_from_index(self, index):
         query = self._radarserver.query()
         query.stations(self._station).all_times()
-        found_ds = self._datasets(query)[index]
+        found_ds = self._get_datasets(query)[index]
         if isinstance(found_ds, list):
             return [ds.access_urls[self._protocol] for ds in found_ds]
         return found_ds.access_urls[self._protocol]
@@ -188,14 +202,13 @@ class Nexrad2Request(object):
     def _get_from_timestamp(self, timestamp):
         query = self._radarserver.query()
         query.stations(self._station).time(timestamp)
-        ds = self._datasets(query)[0]
+        ds = self._get_datasets(query)[0]
         return ds.access_urls[self._protocol]
 
     def _get_from_slice(self, sliceobj):
-        if sliceobj.step is not None:
-            raise ValueError("Slicing by step not supported at this time")
         start = sliceobj.start
         stop = sliceobj.stop
+        step = sliceobj.step
 
         use_index = any([
             isinstance(start, int) or isinstance(stop, int),
@@ -216,10 +229,22 @@ class Nexrad2Request(object):
                 # provide all data for last 90 days,
                 # if the radar server has data back to that point.
                 start = current_time_utc() - timedelta(days=90)
+
             query = self._radarserver.query()
-            query.stations(self._station).time_range(start, stop)
-            found_ds = self._datasets(query)
-            return [ds.access_urls[self._protocol] for ds in found_ds]
+            query.stations(self._station)
+            if step is None:
+                query.time_range(start, stop)
+                found_ds = self._get_datasets(query)
+                return tuple(ds.access_urls[self._protocol] for ds in found_ds)
+            else:
+                timeslot = start
+                return_urls = []
+                while timeslot <= stop:
+                    query.time(timeslot)
+                    found_ds = self._get_datasets(query)[0]
+                    return_urls.append(found_ds.access_urls[self._protocol])
+                    timeslot += step
+                return tuple(return_urls)
         elif invalid:
             raise ValueError("Invalid slice, check your values")
         else:
