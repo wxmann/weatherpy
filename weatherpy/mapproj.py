@@ -1,13 +1,13 @@
 import warnings
 from functools import wraps
 
-import config
 import cartopy
 import cartopy.crs as ccrs
 import cartopy.feature as cfeat
 import matplotlib.pyplot as plt
-import weatherpy._mapproj_legacy as _legacy
 
+import config
+import weatherpy._mapproj_legacy as _legacy
 from weatherpy._pyhelpers import coalesce_kwargs
 
 # STANDARD MAPS
@@ -24,6 +24,7 @@ def to_mapper(func):
     def func_wrapper(*args, **kwargs):
         crs = func(*args, **kwargs)
         return CartopyMapper(crs)
+
     return func_wrapper
 
 
@@ -37,8 +38,10 @@ class CartopyMapper(object):
         self._extent = None
         self._ax = None
         self.line_properties = {
-            'color': CartopyMapper.DEFAULT_LINE_COLOR,
-            'width': CartopyMapper.DEFAULT_LINE_WIDTH,
+            'border_color': CartopyMapper.DEFAULT_LINE_COLOR,
+            'border_width': CartopyMapper.DEFAULT_LINE_WIDTH,
+            'county_color': 'gray',
+            'county_width': CartopyMapper.DEFAULT_LINE_WIDTH * 0.75,
             'resolution': CartopyMapper.DEFAULT_RESOLUTION
         }
         self._extent_set = False
@@ -70,7 +73,6 @@ class CartopyMapper(object):
 
     @property
     def ax(self):
-        # self.initialize_drawing()
         return self._ax
 
     def set_drawing_property(self, prop, val):
@@ -90,29 +92,47 @@ class CartopyMapper(object):
     def draw_coastlines(self, **kwargs):
         self.initialize_drawing()
         self._ax.coastlines(**coalesce_kwargs(kwargs, resolution=self.line_properties['resolution'],
-                                              color=self.line_properties['color'],
-                                              linewidth=self.line_properties['width']))
+                                              color=self.line_properties['border_color'],
+                                              linewidth=self.line_properties['border_width']))
 
     def draw_borders(self, **kwargs):
         self.initialize_drawing()
-        self._ax.add_feature(cfeat.BORDERS, **coalesce_kwargs(kwargs, edgecolor=self.line_properties['color'],
-                                                              linewidth=self.line_properties['width']))
+        self._ax.add_feature(cfeat.BORDERS, **coalesce_kwargs(kwargs, edgecolor=self.line_properties['border_color'],
+                                                              linewidth=self.line_properties['border_width']))
 
     def draw_states(self, **kwargs):
         self.initialize_drawing()
         states = cfeat.NaturalEarthFeature(category='cultural', name='admin_1_states_provinces_lakes',
                                            scale=self.line_properties['resolution'], facecolor='none')
-        self._ax.add_feature(states, **coalesce_kwargs(kwargs, edgecolor=self.line_properties['color'],
-                                                       linewidth=self.line_properties['width']))
+        self._ax.add_feature(states, **coalesce_kwargs(kwargs, edgecolor=self.line_properties['border_color'],
+                                                       linewidth=self.line_properties['border_width']))
+
+    def _shpfile(self, filename):
+        return cartopy.io.shapereader.Reader(
+            '{0}/shapefiles/{1}/{1}.shp'.format(config.ROOT_PROJECT_DIR, filename))
 
     def draw_counties(self, **kwargs):
-        counties = cartopy.io.shapereader.Reader(
-            '{}/shapefiles/cb_2015_us_county_5m.shp'.format(config.ROOT_PROJECT_DIR))
-        self._ax.add_geometries(counties.geometries(), ccrs.PlateCarree(),
+        self._ax.add_geometries(self._shpfile('cb_2015_us_county_5m').geometries(), ccrs.PlateCarree(),
                                 **coalesce_kwargs(
-                                    kwargs, edgecolor=self.line_properties['color'],
-                                    linewidth=self.line_properties['width'],
+                                    kwargs, edgecolor=self.line_properties['border_color'],
+                                    linewidth=self.line_properties['border_width'],
                                     facecolor='none'))
+
+    def draw_detailed_us_map(self):
+        self._ax.add_geometries(self._shpfile('cb_2015_us_nation_5m').geometries(), ccrs.PlateCarree(),
+                                edgecolor=self.line_properties['border_color'],
+                                linewidth=self.line_properties['border_width'],
+                                facecolor='none')
+
+        self._ax.add_geometries(self._shpfile('cb_2015_us_state_5m').geometries(), ccrs.PlateCarree(),
+                                edgecolor=self.line_properties['border_color'],
+                                linewidth=self.line_properties['border_width'],
+                                facecolor='none')
+
+        self._ax.add_geometries(self._shpfile('cb_2015_us_county_5m').geometries(), ccrs.PlateCarree(),
+                                edgecolor=self.line_properties['county_color'],
+                                linewidth=self.line_properties['county_width'],
+                                facecolor='none')
 
     def draw_gridlines(self, **kwargs):
         self.initialize_drawing()
