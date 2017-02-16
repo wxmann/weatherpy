@@ -75,9 +75,11 @@ class Level2RadarPlotter(object):
 
     @property
     def timestamp(self):
-        if self._timestamp is None:
-            self._calculate_timestamp()
         return self._timestamp
+
+    @property
+    def units(self):
+        return self._radarvar.units
 
     def _varname(self, prefix):
         if prefix == self._radartype:
@@ -92,7 +94,7 @@ class Level2RadarPlotter(object):
         if radartype not in Level2RadarPlotter.suffix_mapper:
             raise ValueError("Invalid radar type {}".format(radartype))
         self._radartype = radartype
-        self._hires = bool(hires)
+        self._hires = hires
         self._sweep = sweep
         self._fetch_data_for_sweep()
 
