@@ -31,7 +31,10 @@ class GINIPlotter(object):
         self._pixels = self._get_pixels()
         self._geog = self.dataset.variables['LambertConformal']
 
-        self._map = self.default_map()
+        self._crs = projections.lambertconformal(lat0=self._geog.latitude_of_projection_origin,
+                                                 lon0=self._geog.longitude_of_central_meridian,
+                                                 stdlat1=self._geog.standard_parallel,
+                                                 r_earth=self._geog.earth_radius)
 
     def _get_timestamp(self):
         timevar = self.dataset.variables['time']
@@ -77,11 +80,7 @@ class GINIPlotter(object):
                      for val in [min(self._x), max(self._x), min(self._y), max(self._y)])
 
     def default_map(self):
-        crs = projections.lambertconformal(lat0=self._geog.latitude_of_projection_origin,
-                                           lon0=self._geog.longitude_of_central_meridian,
-                                           stdlat1=self._geog.standard_parallel,
-                                           r_earth=self._geog.earth_radius)
-        return drawers.LargeScaleMap(crs)
+        return drawers.LargeScaleMap(self._crs)
 
     def make_plot(self, mapper=None, colortable=None):
         bw = colortable is None or self.sattype == 'VIS'
@@ -91,7 +90,7 @@ class GINIPlotter(object):
             mapper = self.default_map()
         mapper.initialize_drawing()
         mapper.ax.imshow(self.pixels, extent=self.lim, origin='upper',
-                         transform=self._map.crs,
+                         transform=self._crs,
                          cmap=colortable_to_use.cmap, norm=colortable_to_use.norm)
         return mapper
 

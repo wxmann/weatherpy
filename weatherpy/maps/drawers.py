@@ -52,7 +52,7 @@ class BaseCartopyDrawer(object):
         self.initialize_drawing()
         self._ax.gridlines(**coalesce_kwargs(kwargs, linestyle='--', draw_labels=False))
 
-    def draw_default_map(self):
+    def draw_default(self):
         raise NotImplementedError("Default Maps need to be implemented in subclasses")
 
 
@@ -82,7 +82,7 @@ class LargeScaleMap(BaseCartopyDrawer):
                                            scale=self.properties.resolution, facecolor=self.properties.fill)
         self._ax.add_feature(states, edgecolor=self.properties.strokecolor, linewidth=self.properties.strokewidth)
 
-    def draw_default_map(self):
+    def draw_default(self):
         self.draw_coastlines()
         self.draw_borders()
         self.draw_states()
@@ -107,18 +107,18 @@ class DetailedCountyMap(BaseCartopyDrawer):
 
     def draw_borders(self):
         self.initialize_drawing()
-        self._ax.add_geometries(self._shpfile('USA_adm1').geometries(), ccrs.PlateCarree(),
+        self._ax.add_geometries(self._shpfile('cb_2015_us_state_5m').geometries(), ccrs.PlateCarree(),
                                 edgecolor=self.border_properties.strokecolor,
                                 linewidth=self.border_properties.strokewidth,
                                 facecolor=self.border_properties.fill)
 
     def draw_counties(self):
         self.initialize_drawing()
-        self._ax.add_geometries(self._shpfile('USA_adm2').geometries(), ccrs.PlateCarree(),
+        self._ax.add_geometries(self._shpfile('cb_2015_us_county_5m').geometries(), ccrs.PlateCarree(),
                                 edgecolor=self.county_properties.strokecolor,
                                 linewidth=self.county_properties.strokewidth,
                                 facecolor=self.county_properties.fill)
 
-    def draw_default_map(self):
+    def draw_default(self):
         self.draw_borders()
         self.draw_counties()

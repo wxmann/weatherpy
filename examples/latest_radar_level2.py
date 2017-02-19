@@ -9,10 +9,10 @@ def plot_latest_radar(station):
     ctable = colortables.nws
     with radaropen(Nexrad2Request(station)[-1]) as radarplot:
         radarmap = radarplot.make_plot(colortable=ctable)
-        radarmap.draw_default_map()
+        radarmap.draw_default()
         plotutils.plot_offright_inset(radarmap.ax, ctable, title=radarplot.units)
         plt.show()
 
 
 if __name__ == '__main__':
-    plot_latest_radar('KMUX')
+    plot_latest_radar('KDTX')
