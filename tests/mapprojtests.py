@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 import cartopy.crs as ccrs
 
-from weatherpy.mapproj import CartopyMapper
+from weatherpy.maps.mapproj import CartopyMapper
 
 
 class CartopyMapperTest(unittest.TestCase):
@@ -12,7 +12,7 @@ class CartopyMapperTest(unittest.TestCase):
         self.crs = ccrs.PlateCarree()
         self.extent = (1, 2, 3, 4)
         self._axes_spec = ['set_extent', 'coastlines', '__call__']
-        self.axes_patcher = patch('weatherpy.mapproj.plt.axes', spec=self._axes_spec)
+        self.axes_patcher = patch('weatherpy.maps.mapproj.plt.axes', spec=self._axes_spec)
         self.ax = self.axes_patcher.start()
 
     def tearDown(self):
@@ -70,7 +70,7 @@ class CartopyMapperTest(unittest.TestCase):
             'resolution': CartopyMapper.DEFAULT_RESOLUTION
         })
 
-    @patch('weatherpy.mapproj.warnings', spec=warnings)
+    @patch('weatherpy.maps.mapproj.warnings', spec=warnings)
     def test_should_not_set_incorrect_line_property(self, warnings_module):
         mapper = CartopyMapper(self.crs)
         mapper.set_drawing_property('colour', 'red')

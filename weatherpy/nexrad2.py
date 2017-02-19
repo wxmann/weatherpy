@@ -8,8 +8,8 @@ import numpy as np
 from siphon.radarserver import RadarServer, get_radarserver_datasets
 
 from weatherpy import colortables
-from weatherpy import mapproj
 from weatherpy._pyhelpers import current_time_utc
+from weatherpy.maps import mapproj
 from weatherpy.thredds import DatasetAccessException
 
 

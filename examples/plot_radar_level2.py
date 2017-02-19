@@ -6,14 +6,6 @@ from weatherpy.nexrad2 import Nexrad2Request, radaropen
 import matplotlib.pyplot as plt
 
 
-# def plot_latest_radar(station):
-#     ctable = colortables.nws
-#     with radaropen(Nexrad2Request(station)[datetime(2017, 2, 7, 16, 0)]) as radarplot:
-#         radarmap = radarplot.make_plot(colortable=ctable)
-#         radarmap.draw_detailed_us_map()
-#         plotutils.plot_offright_inset(radarmap.ax, ctable, title=radarplot.units)
-#         plt.show()
-
 def plot_latest_radar(station):
     ctable = colortables.nws
     with radaropen(Nexrad2Request(station)[-1]) as radarplot:

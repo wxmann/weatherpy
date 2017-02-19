@@ -5,7 +5,7 @@ import numpy as np
 from siphon.catalog import TDSCatalog
 
 from weatherpy import colortables
-from weatherpy import mapproj
+from weatherpy.maps import mapproj
 from weatherpy.thredds import TimeBasedTDSRequest
 
 

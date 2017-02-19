@@ -1,7 +1,7 @@
 import nose
 from matplotlib.testing.decorators import image_comparison
 
-from weatherpy import mapproj
+from weatherpy.maps import mapproj
 
 
 @image_comparison(baseline_images=['us_map'],

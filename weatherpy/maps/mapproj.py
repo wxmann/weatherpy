@@ -7,7 +7,7 @@ import cartopy.feature as cfeat
 import matplotlib.pyplot as plt
 
 import config
-import weatherpy._mapproj_legacy as _legacy
+import weatherpy.maps._mapproj_legacy as _legacy
 from weatherpy._pyhelpers import coalesce_kwargs
 
 # STANDARD MAPS
