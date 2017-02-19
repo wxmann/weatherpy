@@ -9,10 +9,6 @@ from weatherpy.maps import properties
 
 
 class BaseCartopyDrawer(object):
-    DEFAULT_LINE_WIDTH = 0.5
-    DEFAULT_LINE_COLOR = 'black'
-    DEFAULT_RESOLUTION = '50m'
-
     def __init__(self, crs):
         self._crs = crs
         self._extent = None
