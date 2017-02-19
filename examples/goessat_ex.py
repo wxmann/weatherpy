@@ -12,9 +12,7 @@ def latest_east_coast_wv():
 
     with req[-1] as plotter:
         mapper = plotter.default_map()
-        mapper.draw_coastlines()
-        mapper.draw_borders()
-        mapper.draw_states()
+        mapper.draw_default_map()
         plotter.make_plot(mapper=mapper, colortable=colortable)
         title_text = 'GOES-E {}\n{}'.format(plotter.sattype, plotter.timestamp.strftime('%Y %b %d\n%H:%M UTC'))
         plotutils.top_left_stamp(title_text, mapper,

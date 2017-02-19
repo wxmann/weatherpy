@@ -9,7 +9,8 @@ from siphon.radarserver import RadarServer, get_radarserver_datasets
 
 from weatherpy import colortables
 from weatherpy._pyhelpers import current_time_utc
-from weatherpy.maps import mapproj
+from weatherpy.maps import drawers
+from weatherpy.maps import projections
 from weatherpy.thredds import DatasetAccessException
 
 
@@ -133,7 +134,8 @@ class Level2RadarPlotter(object):
         return processed_data
 
     def default_map(self):
-        mapper = mapproj.lambertconformal(lon0=self._origin[0], lat0=self._origin[1])
+        crs = projections.lambertconformal(lon0=self._origin[0], lat0=self._origin[1])
+        mapper = drawers.DetailedCountyMap(crs)
         mapper.extent = self._extent
         return mapper
 

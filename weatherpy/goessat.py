@@ -5,7 +5,7 @@ import numpy as np
 from siphon.catalog import TDSCatalog
 
 from weatherpy import colortables
-from weatherpy.maps import mapproj
+from weatherpy.maps import drawers, projections
 from weatherpy.thredds import TimeBasedTDSRequest
 
 
@@ -77,10 +77,11 @@ class GINIPlotter(object):
                      for val in [min(self._x), max(self._x), min(self._y), max(self._y)])
 
     def default_map(self):
-        return mapproj.lambertconformal(lat0=self._geog.latitude_of_projection_origin,
-                                        lon0=self._geog.longitude_of_central_meridian,
-                                        stdlat1=self._geog.standard_parallel,
-                                        r_earth=self._geog.earth_radius)
+        crs = projections.lambertconformal(lat0=self._geog.latitude_of_projection_origin,
+                                           lon0=self._geog.longitude_of_central_meridian,
+                                           stdlat1=self._geog.standard_parallel,
+                                           r_earth=self._geog.earth_radius)
+        return drawers.LargeScaleMap(crs)
 
     def make_plot(self, mapper=None, colortable=None):
         bw = colortable is None or self.sattype == 'VIS'
