@@ -108,28 +108,15 @@ class CartopyMapper(object):
                                                        linewidth=self.line_properties['border_width']))
 
     def _shpfile(self, filename):
-        return cartopy.io.shapereader.Reader(
-            '{0}/shapefiles/{1}/{1}.shp'.format(config.ROOT_PROJECT_DIR, filename))
-
-    def draw_counties(self, **kwargs):
-        self._ax.add_geometries(self._shpfile('cb_2015_us_county_5m').geometries(), ccrs.PlateCarree(),
-                                **coalesce_kwargs(
-                                    kwargs, edgecolor=self.line_properties['border_color'],
-                                    linewidth=self.line_properties['border_width'],
-                                    facecolor='none'))
+        return cartopy.io.shapereader.Reader('{0}/{1}/{1}.shp'.format(config.SHAPEFILE_DIR, filename))
 
     def draw_detailed_us_map(self):
-        self._ax.add_geometries(self._shpfile('cb_2015_us_nation_5m').geometries(), ccrs.PlateCarree(),
+        self._ax.add_geometries(self._shpfile('USA_adm1').geometries(), ccrs.PlateCarree(),
                                 edgecolor=self.line_properties['border_color'],
                                 linewidth=self.line_properties['border_width'],
                                 facecolor='none')
 
-        self._ax.add_geometries(self._shpfile('cb_2015_us_state_5m').geometries(), ccrs.PlateCarree(),
-                                edgecolor=self.line_properties['border_color'],
-                                linewidth=self.line_properties['border_width'],
-                                facecolor='none')
-
-        self._ax.add_geometries(self._shpfile('cb_2015_us_county_5m').geometries(), ccrs.PlateCarree(),
+        self._ax.add_geometries(self._shpfile('USA_adm2').geometries(), ccrs.PlateCarree(),
                                 edgecolor=self.line_properties['county_color'],
                                 linewidth=self.line_properties['county_width'],
                                 facecolor='none')
