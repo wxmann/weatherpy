@@ -88,11 +88,12 @@ class LargeScaleMap(BaseCartopyDrawer):
         self.draw_states()
 
 
-class DetailedCountyMap(BaseCartopyDrawer):
+class DetailedUSMap(BaseCartopyDrawer):
     def __init__(self, crs):
-        super(DetailedCountyMap, self).__init__(crs)
+        super(DetailedUSMap, self).__init__(crs)
         self._borderprops = properties.Properties(strokewidth=0.6, strokecolor='black', fill='none')
         self._countyprops = properties.Properties(strokewidth=0.4, strokecolor='gray', fill='none')
+        self._hwyprops = properties.Properties(strokewidth=0.3, strokecolor='blue', fill='none', alpha=0.7)
 
     @property
     def border_properties(self):
@@ -101,6 +102,10 @@ class DetailedCountyMap(BaseCartopyDrawer):
     @property
     def county_properties(self):
         return self._countyprops
+
+    @property
+    def highway_properties(self):
+        return self._hwyprops
 
     def _shpfile(self, filename):
         return cartopy.io.shapereader.Reader('{0}/{1}/{1}.shp'.format(config.SHAPEFILE_DIR, filename))
@@ -119,6 +124,15 @@ class DetailedCountyMap(BaseCartopyDrawer):
                                 linewidth=self.county_properties.strokewidth,
                                 facecolor=self.county_properties.fill)
 
+    def draw_highways(self):
+        self.initialize_drawing()
+        self._ax.add_geometries(self._shpfile('tl_2016_us_primaryroads').geometries(), ccrs.PlateCarree(),
+                                edgecolor=self.highway_properties.strokecolor,
+                                linewidth=self.highway_properties.strokewidth,
+                                facecolor=self.highway_properties.fill,
+                                alpha=self.highway_properties.alpha)
+
     def draw_default(self):
         self.draw_borders()
         self.draw_counties()
+        self.draw_highways()
