@@ -135,7 +135,7 @@ class Level2RadarPlotter(object):
 
     def default_map(self):
         crs = projections.lambertconformal(lon0=self._origin[0], lat0=self._origin[1])
-        mapper = drawers.DetailedUSMap(crs)
+        mapper = drawers.DetailedUSMap(crs, bg_color='black')
         mapper.extent = self._extent
         return mapper
 

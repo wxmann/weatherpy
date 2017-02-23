@@ -6,7 +6,7 @@ from weatherpy.nexrad2 import Nexrad2Request, radaropen
 
 
 def plot_latest_radar(station):
-    ctable = colortables.nws
+    ctable = colortables.radarscope
     with radaropen(Nexrad2Request(station)[-1]) as radarplot:
         radarmap = radarplot.make_plot(colortable=ctable)
         radarmap.draw_default()
@@ -15,4 +15,4 @@ def plot_latest_radar(station):
 
 
 if __name__ == '__main__':
-    plot_latest_radar('KDYX')
+    plot_latest_radar('KMLB')

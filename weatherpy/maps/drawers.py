@@ -2,6 +2,7 @@ import cartopy
 from cartopy import feature as cfeat
 from cartopy import crs as ccrs
 from matplotlib import pyplot as plt
+from cartopy.io.img_tiles import OSM
 
 import config
 from weatherpy._pyhelpers import coalesce_kwargs
@@ -9,11 +10,12 @@ from weatherpy.maps import properties
 
 
 class BaseCartopyDrawer(object):
-    def __init__(self, crs):
+    def __init__(self, crs, bg_color=None):
         self._crs = crs
         self._extent = None
         self._ax = None
         self._extent_set = False
+        self._bg_color = bg_color
 
     @property
     def crs(self):
@@ -43,6 +45,8 @@ class BaseCartopyDrawer(object):
     def initialize_drawing(self):
         if not self._is_drawing_initialized():
             self._ax = plt.axes(projection=self.crs)
+            if self._bg_color is not None:
+                self._ax.background_patch.set_facecolor(self._bg_color)
             self._set_extent()
 
     def _is_drawing_initialized(self):
@@ -57,8 +61,8 @@ class BaseCartopyDrawer(object):
 
 
 class LargeScaleMap(BaseCartopyDrawer):
-    def __init__(self, crs):
-        super(LargeScaleMap, self).__init__(crs)
+    def __init__(self, crs, bg_color=None):
+        super(LargeScaleMap, self).__init__(crs, bg_color)
         self._properties = properties.Properties(strokewidth=0.5, strokecolor='black', fill='none',
                                                  resolution='50m')
 
@@ -89,11 +93,11 @@ class LargeScaleMap(BaseCartopyDrawer):
 
 
 class DetailedUSMap(BaseCartopyDrawer):
-    def __init__(self, crs):
-        super(DetailedUSMap, self).__init__(crs)
-        self._borderprops = properties.Properties(strokewidth=0.6, strokecolor='black', fill='none')
-        self._countyprops = properties.Properties(strokewidth=0.4, strokecolor='gray', fill='none')
-        self._hwyprops = properties.Properties(strokewidth=0.3, strokecolor='blue', fill='none', alpha=0.7)
+    def __init__(self, crs, bg_color=None):
+        super(DetailedUSMap, self).__init__(crs, bg_color)
+        self._borderprops = properties.Properties(strokewidth=1.0, strokecolor='gray', fill='none')
+        self._countyprops = properties.Properties(strokewidth=0.6, strokecolor='gray', fill='none')
+        self._hwyprops = properties.Properties(strokewidth=0.6, strokecolor='brown', fill='none', alpha=0.8)
 
     @property
     def border_properties(self):
@@ -112,6 +116,10 @@ class DetailedUSMap(BaseCartopyDrawer):
 
     def draw_borders(self):
         self.initialize_drawing()
+        self._ax.add_geometries(self._shpfile('cb_2015_us_nation_5m').geometries(), ccrs.PlateCarree(),
+                                edgecolor=self.border_properties.strokecolor,
+                                linewidth=self.border_properties.strokewidth,
+                                facecolor=self.border_properties.fill)
         self._ax.add_geometries(self._shpfile('cb_2015_us_state_5m').geometries(), ccrs.PlateCarree(),
                                 edgecolor=self.border_properties.strokecolor,
                                 linewidth=self.border_properties.strokewidth,
