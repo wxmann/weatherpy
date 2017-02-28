@@ -1,8 +1,8 @@
 import cartopy
-from cartopy import feature as cfeat
 from cartopy import crs as ccrs
-from matplotlib import pyplot as plt
+from cartopy import feature as cfeat
 from cartopy.io.img_tiles import OSM
+from matplotlib import pyplot as plt
 
 import config
 from weatherpy._pyhelpers import coalesce_kwargs
@@ -111,34 +111,37 @@ class DetailedUSMap(BaseCartopyDrawer):
     def highway_properties(self):
         return self._hwyprops
 
+    def _add_shp_geoms(self, filename, crs=None, **kwargs):
+        if crs is None:
+            crs = ccrs.PlateCarree()
+        self._ax.add_geometries(self._shpfile(filename).geometries(), crs, **kwargs)
+
     def _shpfile(self, filename):
         return cartopy.io.shapereader.Reader('{0}/{1}/{1}.shp'.format(config.SHAPEFILE_DIR, filename))
 
     def draw_borders(self):
         self.initialize_drawing()
-        self._ax.add_geometries(self._shpfile('cb_2015_us_nation_5m').geometries(), ccrs.PlateCarree(),
-                                edgecolor=self.border_properties.strokecolor,
-                                linewidth=self.border_properties.strokewidth,
-                                facecolor=self.border_properties.fill)
-        self._ax.add_geometries(self._shpfile('cb_2015_us_state_5m').geometries(), ccrs.PlateCarree(),
-                                edgecolor=self.border_properties.strokecolor,
-                                linewidth=self.border_properties.strokewidth,
-                                facecolor=self.border_properties.fill)
+        self._add_shp_geoms('cb_2015_us_nation_5m', edgecolor=self.border_properties.strokecolor,
+                            linewidth=self.border_properties.strokewidth,
+                            facecolor=self.border_properties.fill)
+        self._add_shp_geoms('cb_2015_us_state_5m', edgecolor=self.border_properties.strokecolor,
+                            linewidth=self.border_properties.strokewidth,
+                            facecolor=self.border_properties.fill)
 
     def draw_counties(self):
         self.initialize_drawing()
-        self._ax.add_geometries(self._shpfile('cb_2015_us_county_5m').geometries(), ccrs.PlateCarree(),
-                                edgecolor=self.county_properties.strokecolor,
-                                linewidth=self.county_properties.strokewidth,
-                                facecolor=self.county_properties.fill)
+        # high_res: 'c_11au16'
+        # medium_res: 'cb_2015_us_county_5m'
+        self._add_shp_geoms('cb_2015_us_county_5m', edgecolor=self.county_properties.strokecolor,
+                            linewidth=self.county_properties.strokewidth,
+                            facecolor=self.county_properties.fill)
 
     def draw_highways(self):
         self.initialize_drawing()
-        self._ax.add_geometries(self._shpfile('tl_2016_us_primaryroads').geometries(), ccrs.PlateCarree(),
-                                edgecolor=self.highway_properties.strokecolor,
-                                linewidth=self.highway_properties.strokewidth,
-                                facecolor=self.highway_properties.fill,
-                                alpha=self.highway_properties.alpha)
+        self._add_shp_geoms('tl_2016_us_primaryroads', edgecolor=self.highway_properties.strokecolor,
+                            linewidth=self.highway_properties.strokewidth,
+                            facecolor=self.highway_properties.fill,
+                            alpha=self.highway_properties.alpha)
 
     def draw_default(self):
         self.draw_borders()
