@@ -1,0 +1,15 @@
+from unittest import TestCase
+
+from weatherpy import calcs
+
+
+class TestCalcs(TestCase):
+    def test_destination_point(self):
+        lon = -73.984
+        lat = 40.76
+        heading = 45
+        distance = 88.8561
+        lon2, lat2 = calcs.destination_point(lon, lat, distance, heading)
+
+        self.assertAlmostEqual(lat2, 41.3224612, delta=0.01)
+        self.assertAlmostEqual(lon2, -73.2318226, delta=0.01)

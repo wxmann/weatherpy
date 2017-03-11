@@ -7,6 +7,7 @@ import netCDF4 as nc
 import numpy as np
 from siphon.radarserver import RadarServer, get_radarserver_datasets
 
+import config
 from weatherpy import colortables
 from weatherpy._pyhelpers import current_time_utc
 from weatherpy.maps import drawers
@@ -81,6 +82,10 @@ class Level2RadarPlotter(object):
     @property
     def units(self):
         return self._radarvar.units
+
+    @property
+    def origin(self):
+        return self._origin
 
     def _varname(self, prefix):
         if prefix == self._radartype:
@@ -172,11 +177,19 @@ def _convert_pix(pix, offset, scale):
     return pix
 
 
+def get_radar_server(host, dataset):
+    full_datasets = get_radarserver_datasets(host)
+    if dataset not in full_datasets:
+        raise ValueError("Invalid dataset: {} for host: {}".format(dataset, host))
+    url = full_datasets[dataset].follow().catalog_url
+    return RadarServer(url)
+
+
 class Nexrad2Request(object):
-    def __init__(self, station, protocol='OPENDAP'):
+    def __init__(self, station, server=None, protocol='OPENDAP'):
         self._station = station
-        self._radarserver = _get_radar_server(host='http://thredds.ucar.edu/thredds/',
-                                              dataset='NEXRAD Level II Radar from IDD')
+        self._radarserver = server or get_radar_server(config.LEVEL_2_RADAR_CATALOG.host,
+                                                       config.LEVEL_2_RADAR_CATALOG.dataset)
         self._check_station(station)
         self._protocol = protocol
         self._get_datasets = functools.partial(_sorted_datasets, radarserver=self._radarserver)
@@ -253,12 +266,6 @@ class Nexrad2Request(object):
             raise ValueError("Invalid slice, check your values")
         else:
             raise ValueError("Invalid slice, check your values")
-
-
-def _get_radar_server(host, dataset):
-    full_datasets = get_radarserver_datasets(host)
-    url = full_datasets[dataset].follow().catalog_url
-    return RadarServer(url)
 
 
 def _valid_station(st, radarserver):

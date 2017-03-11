@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from unittest import TestCase
 from unittest.mock import patch, MagicMock, call
 
-from siphon.radarserver import RadarServer, RadarQuery
+from siphon.radarserver import RadarQuery
 
 from weatherpy.nexrad2 import Nexrad2Request
 from weatherpy.thredds import DatasetAccessException
@@ -22,7 +22,7 @@ class TestNexrad2Request(TestCase):
         self.dummy_radar_server = self.radar_server_patch.start()
         self.dummy_radar_server.query = MagicMock(spec=RadarQuery)
 
-        self.radar_request_patch = patch('weatherpy.nexrad2._get_radar_server', return_value=self.dummy_radar_server)
+        self.radar_request_patch = patch('weatherpy.nexrad2.get_radar_server', return_value=self.dummy_radar_server)
         self.radar_request_patch.start()
 
         self.check_station_patch = patch('weatherpy.nexrad2._valid_station', return_value=True)

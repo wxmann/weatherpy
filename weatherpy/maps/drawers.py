@@ -96,8 +96,8 @@ class DetailedUSMap(BaseCartopyDrawer):
     def __init__(self, crs, bg_color=None):
         super(DetailedUSMap, self).__init__(crs, bg_color)
         self._borderprops = properties.Properties(strokewidth=1.0, strokecolor='gray', fill='none')
-        self._countyprops = properties.Properties(strokewidth=0.6, strokecolor='gray', fill='none')
-        self._hwyprops = properties.Properties(strokewidth=0.6, strokecolor='brown', fill='none', alpha=0.8)
+        self._countyprops = properties.Properties(strokewidth=0.5, strokecolor='gray', fill='none')
+        self._hwyprops = properties.Properties(strokewidth=0.5, strokecolor='brown', fill='none', alpha=0.8)
 
     @property
     def border_properties(self):
