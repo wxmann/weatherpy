@@ -1,6 +1,7 @@
 from unittest import TestCase
 
 from weatherpy import calcs
+import numpy as np
 
 
 class TestCalcs(TestCase):
@@ -13,3 +14,11 @@ class TestCalcs(TestCase):
 
         self.assertAlmostEqual(lat2, 41.3224612, delta=0.01)
         self.assertAlmostEqual(lon2, -73.2318226, delta=0.01)
+
+    def test_get_bbox_from_2dcoord(self):
+        coord = np.asarray([[-1, -5], [2, 3], [5, 0]])
+        x0, x1, y0, y1 = calcs.bbox_from_coord(coord)
+        self.assertAlmostEqual(x0, -1)
+        self.assertAlmostEqual(x1, 5)
+        self.assertAlmostEqual(y0, -5)
+        self.assertAlmostEqual(y1, 3)

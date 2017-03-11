@@ -5,14 +5,19 @@ from datetime import datetime, timedelta
 import cartopy.crs as ccrs
 import netCDF4 as nc
 import numpy as np
+from matplotlib import patches
 from siphon.radarserver import RadarServer, get_radarserver_datasets
 
 import config
 from weatherpy import colortables
+from weatherpy import plotutils
 from weatherpy._pyhelpers import current_time_utc
+from weatherpy.calcs import bbox_from_coord
 from weatherpy.maps import drawers
 from weatherpy.maps import projections
 from weatherpy.thredds import DatasetAccessException
+
+DEFAULT_RANGE_MI = 143.
 
 
 @contextmanager
@@ -56,6 +61,9 @@ class Level2RadarPlotter(object):
             self.dataset.StationLongitude,
             self.dataset.StationLatitude
         )
+
+        self._mapper_used = None
+        self._mesh = None
 
     @property
     def radartype(self):
@@ -145,17 +153,36 @@ class Level2RadarPlotter(object):
         return mapper
 
     def make_plot(self, mapper=None, colortable=None):
-        if mapper is None:
-            mapper = self.default_map()
-        elif isinstance(mapper.crs, ccrs.PlateCarree):
+        if mapper is not None and isinstance(mapper.crs, ccrs.PlateCarree):
             raise ValueError("Radar images are not supported on the Plate Carree projection at this time.")
+        mapper = self._saved_mapper(mapper)
         if colortable is None:
             colortable = colortables.refl_avl
 
         mapper.initialize_drawing()
-        mapper.ax.pcolormesh(self._x, self._y, self._radardata,
-                             cmap=colortable.cmap, norm=colortable.norm, zorder=0)
+        self._mesh = mapper.ax.pcolormesh(self._x, self._y, self._radardata,
+                                          cmap=colortable.cmap, norm=colortable.norm, zorder=0)
         return mapper
+
+    def range_ring(self, mi=None, color=None, limit=True, draw_ring=True):
+        if self._mesh is None or self._mapper_used is None:
+            raise ValueError("Must make radar plot first before drawing the range ring")
+        if mi is None:
+            mi = DEFAULT_RANGE_MI
+        mapper = self._saved_mapper()
+        ring = plotutils.ring_path(mi, self._origin)
+        if draw_ring:
+            patch = patches.PathPatch(ring, edgecolor=color, facecolor='none', transform=ccrs.PlateCarree())
+            mapper.ax.add_patch(patch)
+        if limit:
+            mapper.extent = bbox_from_coord(ring.vertices)
+            self._mesh.set_clip_path(ring, transform=ccrs.PlateCarree()._as_mpl_transform(mapper.ax))
+        return mapper
+
+    def _saved_mapper(self, mapper=None):
+        if self._mapper_used is None:
+            self._mapper_used = mapper if mapper is not None else self.default_map()
+        return self._mapper_used
 
     # only for debugging purposes. Not for public API consumption.
     def draw_hist(self, convert=False):

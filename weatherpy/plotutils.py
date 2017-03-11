@@ -60,18 +60,16 @@ def top_left_stamp(txt, ax, **text_kwargs):
 def bottom_right_stamp(txt, ax, **text_kwargs):
     x = 0.99
     y = 1.0 - x
-    return ax.text(x, y, txt,transform=ax.transAxes,
+    return ax.text(x, y, txt, transform=ax.transAxes,
                    horizontalalignment='right', verticalalignment='bottom', **text_kwargs)
 
 
-def range_ring(mapper, r_mi, ctr, color=None):
+def ring_path(r_mi, ctr):
     theta = np.linspace(0, 360, 100)
     r_km = miles2km(r_mi)
     dest = np.vectorize(functools.partial(destination_point, ctr[0], ctr[1], r_km))
     ring = np.asarray(dest(theta)).T
-    patch = patches.PathPatch(mpath.Path(ring), edgecolor=color or 'orange', facecolor='none',
-                              transform=ccrs.PlateCarree())
-    mapper.ax.add_patch(patch)
+    return mpath.Path(ring)
 
 
 def save_image_no_border(ax, saveloc, dpi=None):

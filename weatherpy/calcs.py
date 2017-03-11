@@ -16,3 +16,9 @@ def destination_point(lon, lat, distance, bearing, R_earth=6378.1):
 
 def miles2km(mi):
     return mi * 1.60934
+
+
+def bbox_from_coord(coord_mat):
+    lons = coord_mat[:,0]
+    lats = coord_mat[:,1]
+    return min(lons), max(lons), min(lats), max(lats)
