@@ -1,11 +1,10 @@
 import functools
+
+import matplotlib.path as mpath
 import matplotlib.pyplot as plt
+import numpy as np
 import pylab
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from cartopy import crs as ccrs
-import numpy as np
-import matplotlib.path as mpath
-import matplotlib.patches as patches
 
 from weatherpy.calcs import miles2km, destination_point
 
@@ -35,7 +34,9 @@ def plot_offright_inset(ax, colortable, width='3%', height='100%', title=None, c
         plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color=color)
 
 
-def plot_topright_inset(ax, colortable, width='50%', height='3%', title=None, color=None, **legend_kwargs):
+def plot_topright_inset(ax, colortable, width='50%', height='3%', title=None, labels=True,
+                        color=None, label_size=10,
+                        **legend_kwargs):
     ax_inset = inset_axes(ax,
                           width=width,
                           height=height,
@@ -44,10 +45,10 @@ def plot_topright_inset(ax, colortable, width='50%', height='3%', title=None, co
     cbar = plot_legend(colortable, cax=ax_inset, orientation='horizontal', **legend_kwargs)
     if title is not None:
         cbar.set_label(title, color=color)
-    if color is not None:
+    if labels:
         cbar.outline.set_edgecolor(color)
         cbar.ax.xaxis.set_tick_params(color=color)
-        plt.setp(plt.getp(cbar.ax.axes, 'xticklabels'), color=color)
+        plt.setp(plt.getp(cbar.ax.axes, 'xticklabels'), color=color, size=label_size)
 
 
 def top_left_stamp(txt, ax, **text_kwargs):
@@ -72,7 +73,8 @@ def ring_path(r_mi, ctr):
     return mpath.Path(ring)
 
 
-def save_image_no_border(ax, saveloc, dpi=None):
-    ax.set_frame_on(False)
-    plt.axis('off')
-    pylab.savefig(saveloc, bbox_inches='tight', pad_inches=0, transparent=True, dpi=dpi)
+def save_image_no_border(fig, saveloc, dpi=None):
+    for ax in fig.get_axes():
+        ax.set_frame_on(False)
+    # plt.axis('off')
+    pylab.savefig(saveloc, bbox_inches='tight', pad_inches=0, transparent=False, dpi=dpi)

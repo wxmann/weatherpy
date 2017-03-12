@@ -164,7 +164,7 @@ class Level2RadarPlotter(object):
                                           cmap=colortable.cmap, norm=colortable.norm, zorder=0)
         return mapper
 
-    def range_ring(self, mi=None, color=None, limit=True, draw_ring=True):
+    def range_ring(self, mi=None, draw_ring=True, color=None, limit=True, fit_to_ring=True):
         if self._mesh is None or self._mapper_used is None:
             raise ValueError("Must make radar plot first before drawing the range ring")
         if mi is None:
@@ -175,8 +175,9 @@ class Level2RadarPlotter(object):
             patch = patches.PathPatch(ring, edgecolor=color, facecolor='none', transform=ccrs.PlateCarree())
             mapper.ax.add_patch(patch)
         if limit:
-            mapper.extent = bbox_from_coord(ring.vertices)
             self._mesh.set_clip_path(ring, transform=ccrs.PlateCarree()._as_mpl_transform(mapper.ax))
+        if fit_to_ring:
+            mapper.extent = bbox_from_coord(ring.vertices)
         return mapper
 
     def _saved_mapper(self, mapper=None):
