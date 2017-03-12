@@ -1,4 +1,5 @@
 import functools
+from contextlib import contextmanager
 
 import matplotlib.path as mpath
 import matplotlib.pyplot as plt
@@ -74,9 +75,20 @@ def ring_path(r_mi, ctr):
     return mpath.Path(ring)
 
 
-def save_image_no_border(fig, saveloc, dpi=None):
+def save_image_no_border(fig, saveloc):
     logger.info('[PLOT] Saving image to: {}'.format(saveloc))
     for ax in fig.get_axes():
         ax.set_frame_on(False)
     # plt.axis('off')
-    pylab.savefig(saveloc, bbox_inches='tight', pad_inches=0, transparent=False, dpi=dpi)
+    pylab.savefig(saveloc, bbox_inches='tight', pad_inches=0, transparent=False)
+
+
+@contextmanager
+def figcontext(*args, **kwargs):
+    fig = None
+    try:
+        fig = plt.figure(*args, **kwargs)
+        yield fig
+    finally:
+        if fig is not None:
+            plt.close(fig)
