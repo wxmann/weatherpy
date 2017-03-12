@@ -5,6 +5,7 @@ from cartopy.io.img_tiles import OSM
 from matplotlib import pyplot as plt
 
 import config
+from weatherpy import logger
 from weatherpy._pyhelpers import coalesce_kwargs
 from weatherpy.maps import properties
 
@@ -29,6 +30,7 @@ class BaseCartopyDrawer(object):
     def extent(self, extent_coord):
         if extent_coord is None or len(extent_coord) != 4:
             raise ValueError("Extent must be of form (x0, x1, y0, y1)")
+        logger.info('[MAP] Setting extent to (lon0, lon1, lat0, lat1): {}'.format(extent_coord))
         self._extent = tuple(extent_coord)
         self._extent_set = False
         self._set_extent()
@@ -71,16 +73,19 @@ class LargeScaleMap(BaseCartopyDrawer):
         return self._properties
 
     def draw_coastlines(self):
+        logger.info("[MAP] Begin drawing coastlines")
         self.initialize_drawing()
         self._ax.coastlines(resolution=self.properties.resolution, color=self.properties.strokecolor,
                             linewidth=self.properties.strokewidth)
 
     def draw_borders(self):
+        logger.info("[MAP] Begin drawing borders")
         self.initialize_drawing()
         self._ax.add_feature(cfeat.BORDERS, edgecolor=self.properties.strokecolor,
                              linewidth=self.properties.strokewidth)
 
     def draw_states(self):
+        logger.info("[MAP] Begin drawing states")
         self.initialize_drawing()
         states = cfeat.NaturalEarthFeature(category='cultural', name='admin_1_states_provinces_lakes',
                                            scale=self.properties.resolution, facecolor=self.properties.fill)
@@ -120,6 +125,7 @@ class DetailedUSMap(BaseCartopyDrawer):
         return cartopy.io.shapereader.Reader('{0}/{1}/{1}.shp'.format(config.SHAPEFILE_DIR, filename))
 
     def draw_borders(self):
+        logger.info("[MAP] Begin drawing borders")
         self.initialize_drawing()
         self._add_shp_geoms('cb_2015_us_nation_5m', edgecolor=self.border_properties.strokecolor,
                             linewidth=self.border_properties.strokewidth,
@@ -129,6 +135,7 @@ class DetailedUSMap(BaseCartopyDrawer):
                             facecolor=self.border_properties.fill)
 
     def draw_counties(self):
+        logger.info("[MAP] Begin drawing counties")
         self.initialize_drawing()
         # high_res: 'c_11au16'
         # medium_res: 'cb_2015_us_county_5m'
@@ -137,6 +144,7 @@ class DetailedUSMap(BaseCartopyDrawer):
                             facecolor=self.county_properties.fill)
 
     def draw_highways(self):
+        logger.info("[MAP] Begin drawing highways")
         self.initialize_drawing()
         self._add_shp_geoms('tl_2016_us_primaryroads', edgecolor=self.highway_properties.strokecolor,
                             linewidth=self.highway_properties.strokewidth,

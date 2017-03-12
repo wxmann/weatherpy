@@ -6,6 +6,7 @@ import numpy as np
 import pylab
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
+from weatherpy import logger
 from weatherpy.calcs import miles2km, destination_point
 
 
@@ -74,6 +75,7 @@ def ring_path(r_mi, ctr):
 
 
 def save_image_no_border(fig, saveloc, dpi=None):
+    logger.info('[PLOT] Saving image to: {}'.format(saveloc))
     for ax in fig.get_axes():
         ax.set_frame_on(False)
     # plt.axis('off')

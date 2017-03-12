@@ -10,6 +10,7 @@ from siphon.radarserver import RadarServer, get_radarserver_datasets
 
 import config
 from weatherpy import colortables
+from weatherpy import logger
 from weatherpy import plotutils
 from weatherpy._pyhelpers import current_time_utc
 from weatherpy.calcs import bbox_from_coord
@@ -47,6 +48,7 @@ class Level2RadarPlotter(object):
         self._hires = hires
         self._sweep = sweep
         self._timestamp = None
+        self._station = dataset.Station
 
         self.set_radar(radartype or 'Reflectivity', hires, sweep)
 
@@ -84,6 +86,10 @@ class Level2RadarPlotter(object):
         self._fetch_data_for_sweep()
 
     @property
+    def station(self):
+        return self._station
+
+    @property
     def timestamp(self):
         return self._timestamp
 
@@ -105,6 +111,8 @@ class Level2RadarPlotter(object):
         return varname
 
     def set_radar(self, radartype='Reflectivity', hires=True, sweep=0):
+        logger.info(
+            '[PROCESS LEVEL 2] Setting radar to type: {}, hi-res: {}, sweep: {}'.format(radartype, hires, sweep))
         if radartype not in Level2RadarPlotter.suffix_mapper:
             raise ValueError("Invalid radar type {}".format(radartype))
         self._radartype = radartype
@@ -116,6 +124,8 @@ class Level2RadarPlotter(object):
         self._calculate_radar_pix()
         self._calculate_xy()
         self._calculate_timestamp()
+        logger.info('[PROCESS LEVEL 2] Finish parsing radar information for radar station: {}, timestamp: {}'.format(
+            self.station, self.timestamp))
 
     def _calculate_radar_pix(self):
         self._radarvar = self.dataset.variables[self._varname(self._radartype)]
