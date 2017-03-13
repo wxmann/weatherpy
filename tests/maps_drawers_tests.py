@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 import cartopy.crs as ccrs
 
-from weatherpy.maps.drawers import BaseCartopyDrawer, LargeScaleMap
+from weatherpy.maps.mappers import MapperBase, LargeScaleMap
 
 
 class CartopyDrawerTest(unittest.TestCase):
@@ -18,14 +18,14 @@ class CartopyDrawerTest(unittest.TestCase):
         self.axes_patcher.stop()
 
     def test_should_set_extent_and_retrieve_it_but_not_apply_to_axes(self):
-        mapper = BaseCartopyDrawer(self.crs)
+        mapper = MapperBase(self.crs)
 
         mapper.extent = self.extent
 
         self.assertEqual(mapper.extent, self.extent)
 
     def test_should_initialize_drawing_with_axes_but_not_set_extent(self):
-        mapper = BaseCartopyDrawer(self.crs)
+        mapper = MapperBase(self.crs)
 
         mapper.initialize_drawing()
 
@@ -34,7 +34,7 @@ class CartopyDrawerTest(unittest.TestCase):
         mapper.ax.set_extent.assert_not_called()
 
     def test_should_set_extent_for_axes_if_drawing_initialized(self):
-        mapper = BaseCartopyDrawer(self.crs)
+        mapper = MapperBase(self.crs)
         mapper.initialize_drawing()
 
         mapper.extent = self.extent
@@ -43,7 +43,7 @@ class CartopyDrawerTest(unittest.TestCase):
         mapper.ax.set_extent.assert_called_with(self.extent)
 
     def test_should_initialize_drawing_with_provided_extent(self):
-        mapper = BaseCartopyDrawer(self.crs)
+        mapper = MapperBase(self.crs)
         mapper.extent = self.extent
 
         mapper.initialize_drawing()
@@ -53,7 +53,7 @@ class CartopyDrawerTest(unittest.TestCase):
         mapper.ax.set_extent.assert_called_with(self.extent)
 
     def test_should_throw_ex_if_extent_is_not_a_four_element_tuple(self):
-        mapper = BaseCartopyDrawer(self.crs)
+        mapper = MapperBase(self.crs)
         with self.assertRaises(ValueError):
             mapper.extent = (1, 2)
         with self.assertRaises(ValueError):

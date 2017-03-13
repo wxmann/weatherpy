@@ -7,7 +7,7 @@ from siphon.catalog import TDSCatalog
 
 from weatherpy import colortables
 from weatherpy import logger
-from weatherpy.maps import drawers, projections
+from weatherpy.maps import mappers, projections
 from weatherpy.thredds import DatasetAccessException, THREDDS_TIMESTAMP_FORMAT
 
 
@@ -82,7 +82,7 @@ class GINIPlotter(object):
             return pix
 
     def default_map(self):
-        return drawers.LargeScaleMap(self._crs)
+        return mappers.LargeScaleMap(self._crs)
 
     def make_plot(self, mapper=None, colortable=None):
         bw = colortable is None or self._sattype == 'VIS'

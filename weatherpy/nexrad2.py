@@ -11,10 +11,10 @@ from siphon.radarserver import RadarServer, get_radarserver_datasets
 import config
 from weatherpy import colortables
 from weatherpy import logger
-from weatherpy import plotutils
+from weatherpy import plotextras
 from weatherpy._pyhelpers import current_time_utc
 from weatherpy.calcs import bbox_from_coord
-from weatherpy.maps import drawers
+from weatherpy.maps import mappers
 from weatherpy.maps import projections
 from weatherpy.thredds import DatasetAccessException
 
@@ -158,7 +158,7 @@ class Level2RadarPlotter(object):
 
     def default_map(self):
         crs = projections.lambertconformal(lon0=self._origin[0], lat0=self._origin[1])
-        mapper = drawers.DetailedUSMap(crs, bg_color='black')
+        mapper = mappers.DetailedUSMap(crs, bg_color='black')
         mapper.extent = self._extent
         return mapper
 
@@ -180,7 +180,7 @@ class Level2RadarPlotter(object):
         if mi is None:
             mi = DEFAULT_RANGE_MI
         mapper = self._saved_mapper()
-        ring = plotutils.ring_path(mi, self._origin)
+        ring = plotextras.ring_path(mi, self._origin)
         if draw_ring:
             patch = patches.PathPatch(ring, edgecolor=color, facecolor='none', transform=ccrs.PlateCarree())
             mapper.ax.add_patch(patch)

@@ -1,14 +1,9 @@
 import cartopy.crs as ccrs
 
-import weatherpy.maps._mapproj_legacy as _legacy
-
 # STANDARD MAPS
-# TODO: do we plan to use them anywhere?
+# TODO: create an extents module for this
 # atlantic_basin = EquidistantCylindrical(llcrnlat=5.0, llcrnlon=-105.0, urcrnlat=60, urcrnlon=-5.0)
 # north_america = LambertConformal(lat0=45, lon0=-100, width=11000000, height=8500000)
-
-EquidistantCylindrical = _legacy.EquidistantCylindrical
-LambertConformal = _legacy.LambertConformal
 
 
 def platecarree(central_longitude=0.0):

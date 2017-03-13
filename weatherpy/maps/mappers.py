@@ -10,7 +10,7 @@ from weatherpy._pyhelpers import coalesce_kwargs
 from weatherpy.maps import properties
 
 
-class BaseCartopyDrawer(object):
+class MapperBase(object):
     def __init__(self, crs, bg_color=None):
         self._crs = crs
         self._extent = None
@@ -62,7 +62,7 @@ class BaseCartopyDrawer(object):
         raise NotImplementedError("Default Maps need to be implemented in subclasses")
 
 
-class LargeScaleMap(BaseCartopyDrawer):
+class LargeScaleMap(MapperBase):
     def __init__(self, crs, bg_color=None):
         super(LargeScaleMap, self).__init__(crs, bg_color)
         self._properties = properties.Properties(strokewidth=0.5, strokecolor='black', fill='none',
@@ -97,7 +97,7 @@ class LargeScaleMap(BaseCartopyDrawer):
         self.draw_states()
 
 
-class DetailedUSMap(BaseCartopyDrawer):
+class DetailedUSMap(MapperBase):
     def __init__(self, crs, bg_color=None):
         super(DetailedUSMap, self).__init__(crs, bg_color)
         self._borderprops = properties.Properties(strokewidth=1.0, strokecolor='gray', fill='none')

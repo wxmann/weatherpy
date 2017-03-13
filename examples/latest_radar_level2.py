@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 
 from weatherpy import colortables
-from weatherpy import plotutils
+from weatherpy import plotextras
 from weatherpy.nexrad2 import Nexrad2Request, radar2open
 
 
@@ -12,11 +12,11 @@ def plot_latest_radar(station):
         radarmap = radarplot.make_plot(colortable=ctable)
         radarplot.range_ring(color=text_color)
         radarmap.draw_default()
-        plotutils.plot_topright_inset(radarmap.ax, ctable, color=text_color)
+        plotextras.top_right_inset(radarmap.ax, ctable, color=text_color)
 
         title_text = '{} 0.5 deg Reflectivity, {}'.format(station,
                                                           radarplot.timestamp.strftime('%Y %b %d %H:%M UTC'))
-        plotutils.bottom_right_stamp(title_text, radarmap.ax, color=text_color)
+        plotextras.bottom_right_stamp(title_text, radarmap.ax, color=text_color)
         plt.show()
 
 

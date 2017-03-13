@@ -5,7 +5,6 @@ import matplotlib.path as mpath
 import matplotlib.pyplot as plt
 import numpy as np
 import pylab
-from matplotlib import patheffects
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from weatherpy import logger
@@ -37,9 +36,9 @@ def plot_offright_inset(ax, colortable, width='3%', height='100%', title=None, c
         plt.setp(plt.getp(cbar.ax.axes, 'yticklabels'), color=color)
 
 
-def plot_topright_inset(ax, colortable, width='50%', height='3%', title=None, labels=True,
-                        color=None, label_size=10,
-                        **legend_kwargs):
+def top_right_inset(ax, colortable, width='50%', height='3%', title=None, labels=True,
+                    color=None, label_size=10,
+                    **legend_kwargs):
     ax_inset = inset_axes(ax,
                           width=width,
                           height=height,
@@ -52,13 +51,6 @@ def plot_topright_inset(ax, colortable, width='50%', height='3%', title=None, la
         cbar.outline.set_edgecolor(color)
         cbar.ax.xaxis.set_tick_params(color=color)
         plt.setp(plt.getp(cbar.ax.axes, 'xticklabels'), color=color, size=label_size)
-
-
-def top_left_stamp(txt, ax, **text_kwargs):
-    x = 0.01
-    y = 1.0 - x
-    return ax.text(x, y, txt, transform=ax.transAxes,
-                   horizontalalignment='left', verticalalignment='top', **text_kwargs)
 
 
 def bottom_right_stamp(txt, ax, **text_kwargs):
