@@ -3,16 +3,21 @@ from datetime import timedelta, datetime
 
 from weatherpy import colortables
 from weatherpy import plotutils
-from weatherpy.nexrad2 import Nexrad2Request, radaropen
+from weatherpy.nexrad2 import Nexrad2Request, radar2open
 
 
-def save_reflectivity(savedir, station, start, end, interval_min=5):
+def save_reflectivity(savedir, station, start, end, interval=None):
     ctable = colortables.radarscope
     text_color = '0.85'
 
-    for radar_url in Nexrad2Request(station)[start: end: timedelta(minutes=interval_min)]:
+    if interval is None:
+        radars = Nexrad2Request(station)[start: end]
+    else:
+        radars = Nexrad2Request(station)[start: end: timedelta(minutes=interval)]
+
+    for radar_url in radars:
         with plotutils.figcontext(figsize=(12, 12)) as fig:
-            with radaropen(radar_url) as radarplt:
+            with radar2open(radar_url) as radarplt:
                 radarmap = radarplt.make_plot(colortable=ctable)
                 radarplt.range_ring(color=text_color)
                 radarmap.draw_default()
@@ -29,6 +34,6 @@ def save_reflectivity(savedir, station, start, end, interval_min=5):
 if __name__ == '__main__':
     station = 'KPAH'
     saveloc = r'C:\Users\tangz\Pictures\2017_WX\170228_IL-MO-AR-IN-KY-IA' + '/{}'.format(station)
-    start = datetime(2017, 3, 1, 0, 50)
-    end = datetime(2017, 3, 1, 3, 30)
-    save_reflectivity(saveloc, station, start, end, interval_min=4)
+    start = datetime(2017, 3, 1, 5, 30)
+    end = datetime(2017, 3, 1, 6, 0)
+    save_reflectivity(saveloc, station, start, end, interval=None)

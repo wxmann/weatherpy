@@ -22,7 +22,7 @@ DEFAULT_RANGE_MI = 143.
 
 
 @contextmanager
-def radaropen(url, **kwargs):
+def radar2open(url, **kwargs):
     dataset = nc.Dataset(url)
     try:
         yield Level2RadarPlotter(dataset, **kwargs)

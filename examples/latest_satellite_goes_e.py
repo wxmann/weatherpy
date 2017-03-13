@@ -7,19 +7,18 @@ from weatherpy import plotutils
 
 
 def latest_east_coast_wv():
-    colortable = colortables.wv_accuwx
+    colortable = colortables.wv_noaa
     req = goessat.GoesDataRequest('WV', 'EAST-CONUS_4km')
+    text_color = 'black'
 
-    with req[-1] as plotter:
+    with goessat.goesopen(req[-1]) as plotter:
         mapper = plotter.default_map()
         mapper.draw_default()
         plotter.make_plot(mapper=mapper, colortable=colortable)
-        title_text = 'GOES-E {}\n{}'.format(plotter.sattype, plotter.timestamp.strftime('%Y %b %d\n%H:%M UTC'))
-        plotutils.top_left_stamp(title_text, mapper.ax,
-                                 fontsize='medium',
-                                 weight='bold',
-                                 color='black',
-                                 path_effects=[patheffects.withStroke(linewidth=1.5, foreground="white")])
+        plotutils.plot_topright_inset(mapper.ax, colortable, color=text_color)
+        title_text = 'GOES-E {} {}'.format(plotter.sattype, plotter.timestamp.strftime('%Y %b %d %H:%M UTC'))
+        plotutils.bottom_right_stamp(title_text, mapper.ax, fontsize=16, color=text_color, weight='bold',
+                                     path_effects=[patheffects.withStroke(linewidth=2, foreground="white")])
         plt.show()
 
 if __name__ == '__main__':

@@ -5,6 +5,7 @@ import matplotlib.path as mpath
 import matplotlib.pyplot as plt
 import numpy as np
 import pylab
+from matplotlib import patheffects
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from weatherpy import logger

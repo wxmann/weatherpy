@@ -2,13 +2,13 @@ import matplotlib.pyplot as plt
 
 from weatherpy import colortables
 from weatherpy import plotutils
-from weatherpy.nexrad2 import Nexrad2Request, radaropen
+from weatherpy.nexrad2 import Nexrad2Request, radar2open
 
 
 def plot_latest_radar(station):
     ctable = colortables.radarscope
     text_color = '0.85'
-    with radaropen(Nexrad2Request(station)[-1]) as radarplot:
+    with radar2open(Nexrad2Request(station)[-1]) as radarplot:
         radarmap = radarplot.make_plot(colortable=ctable)
         radarplot.range_ring(color=text_color)
         radarmap.draw_default()
