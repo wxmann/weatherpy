@@ -1,5 +1,6 @@
+from collections import OrderedDict
 from contextlib import contextmanager
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import netCDF4 as nc
 import numpy as np
@@ -7,8 +8,9 @@ from siphon.catalog import TDSCatalog
 
 from weatherpy import colortables
 from weatherpy import logger
+from weatherpy._pyhelpers import index_time_slice_helper, current_time_utc
 from weatherpy.maps import mappers, projections
-from weatherpy.thredds import DatasetAccessException, THREDDS_TIMESTAMP_FORMAT
+from weatherpy.thredds import DatasetAccessException, timestamp_from_dataset
 
 
 @contextmanager
@@ -121,87 +123,73 @@ def pixel_to_temp(pixel, unit='C'):
 
 
 class GoesDataRequest(object):
-    def __init__(self, sattype, sector, request_date=None):
+    def __init__(self, sattype, sector, protocol='OPENDAP'):
         self.sector = sector
         self.sattype = sattype.upper()
-        self._user_request_date = request_date
-        self._current_date_utc = datetime.utcnow().date()
-        self._catalog = None
-        self._catalog_datasets = None
-        self._initialize_thredds_catalog()
-        self._check_catalog_initialized()
+        self._protocol = protocol
 
-    def _initialize_thredds_catalog(self):
+    def _get_catalog_datasets(self, request_date=None):
+        time_path = 'current' if request_date is None else request_date.strftime('%Y%m%d')
         catalog_url = 'http://thredds.ucar.edu/thredds/catalog/satellite/' \
                       '{}/{}/{}/catalog.xml'.format(self.sattype,
                                                     self.sector,
-                                                    GoesDataRequest._str_from_timestamp(self._user_request_date))
+                                                    time_path)
         self._catalog = TDSCatalog(catalog_url)
-        self._catalog_datasets = sorted(self._catalog.datasets.keys())
-
-    @property
-    def request_date(self):
-        return self._user_request_date or self._current_date_utc
-
-    @request_date.setter
-    def request_date(self, newdate):
-        self._user_request_date = newdate
-        self._initialize_thredds_catalog()
-        self._check_catalog_initialized()
-
-    @staticmethod
-    def _str_from_timestamp(timestamp):
-        if timestamp is None:
-            return 'current'
-        else:
-            return timestamp.strftime('%Y%m%d')
-
-    def _check_catalog_initialized(self):
-        if self._catalog is None or self._catalog_datasets is None:
-            raise RuntimeError("Catalog is not properly initialized in TDS Request implementation")
-
-    def __len__(self):
-        return len(self._catalog_datasets)
-
-    def __contains__(self, item):
-        try:
-            self._timestamp_to_dataset(item)
-            return True
-        except DatasetAccessException:
-            return False
+        return OrderedDict((timestamp_from_dataset(k), k) for k in sorted(self._catalog.datasets.keys()))
 
     def __getitem__(self, item):
         if isinstance(item, int):
-            dataset_name = self._index_to_dataset(item)
+            return self._index_to_dataset(item)
         elif isinstance(item, datetime):
-            dataset_name = self._timestamp_to_dataset(item)
+            return self._timestamp_to_dataset(item)
+        elif isinstance(item, slice):
+            return self._slice_to_dataset(item)
         else:
             raise DatasetAccessException("Can only access dataset through an index or timestamp")
-        return self._open(dataset_name)
 
-    def __iter__(self):
-        return iter(self._catalog_datasets)
-
-    def __call__(self, dataset_name):
-        if dataset_name not in self._catalog_datasets:
-            raise DatasetAccessException("Invalid Dataset: {}".format(dataset_name))
-        return self._open(dataset_name)
-
-    def _index_to_dataset(self, index):
+    def _index_to_dataset(self, index, dataset_catalog=None):
+        if dataset_catalog is None:
+            dataset_catalog = self._get_catalog_datasets()
         try:
-            return self._catalog_datasets[index]
+            found_datasets = list(dataset_catalog.values())[index]
+            if isinstance(found_datasets, str):
+                return self._open(found_datasets)
+            return (self._open(ds) for ds in found_datasets)
         except IndexError:
             raise DatasetAccessException("Index: {} out of bounds of breadth of datasets".format(index))
 
-    def _timestamp_to_dataset(self, ts):
-        timestamp_str = ts.strftime(THREDDS_TIMESTAMP_FORMAT)
-        for potential_dataset in self._catalog_datasets:
-            if timestamp_str in potential_dataset:
-                return potential_dataset
-        raise DatasetAccessException("Dataset for timestamp: {} not found".format(ts))
+    def _timestamp_to_dataset(self, ts, dataset_catalog=None):
+        if dataset_catalog is None:
+            dataset_catalog = self._get_catalog_datasets(ts.date())
+        try:
+            matching_dataset = dataset_catalog[ts]
+            return self._open(matching_dataset)
+        except KeyError:
+            raise DatasetAccessException("Dataset for timestamp: {} not found".format(ts))
 
-    def _open(self, dataset_name, protocol='OPENDAP'):
-        if protocol != 'OPENDAP':
+    def _slice_to_dataset(self, sliceobj):
+        def ts_slice(slicearg):
+            if slicearg.start is None:
+                raise DatasetAccessException("Must provide a start timestamp for timestamp indexing")
+            return self._iterable_for_ts_slice(slicearg)
+        return index_time_slice_helper(self._index_to_dataset, ts_slice)(sliceobj)
+
+    def _iterable_for_ts_slice(self, sliceobj):
+        start = sliceobj.start
+        stop = sliceobj.stop
+        if stop is None:
+            stop = current_time_utc()
+        request_date = start.date()
+        end_date = stop.date()
+        while request_date <= end_date:
+            cat = self._get_catalog_datasets(request_date)
+            for k, v in cat.items():
+                if start <= k < stop:
+                    yield self._open(v)
+            request_date += timedelta(days=1)
+
+    def _open(self, dataset_name):
+        if self._protocol != 'OPENDAP':
             raise NotImplementedError("Only OPENDAP protocol supported at this time!")
         dataset = self._catalog.datasets[dataset_name]
-        return dataset.access_urls[protocol]
+        return dataset.access_urls[self._protocol]

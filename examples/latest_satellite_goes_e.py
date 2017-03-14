@@ -7,7 +7,7 @@ from weatherpy import plotextras
 
 
 def latest_east_coast_wv():
-    colortable = colortables.wv_noaa
+    colortable = colortables.wv_accuwx
     req = goessat.GoesDataRequest('WV', 'EAST-CONUS_4km')
     text_color = 'black'
 
