@@ -1,6 +1,6 @@
 import unittest
 from collections import OrderedDict
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta
 from unittest.mock import patch, MagicMock
 
 from weatherpy.goessat import GoesDataRequest
@@ -89,7 +89,7 @@ class GoesDataRequestTest(unittest.TestCase):
             next(ds)
             
     def test_should_raise_exception_if_timestamp_slice_from_start(self):
-        with self.assertRaises(DatasetAccessException):
+        with self.assertRaises(ValueError):
             self.req[: datetime(2016, 1, 31, 0, 0)]
 
     def test_should_raise_exception_if_not_use_int_or_timestamp_to_get_dataset(self):

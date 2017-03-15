@@ -170,7 +170,7 @@ class GoesDataRequest(object):
     def _slice_to_dataset(self, sliceobj):
         def ts_slice(slicearg):
             if slicearg.start is None:
-                raise DatasetAccessException("Must provide a start timestamp for timestamp indexing")
+                raise ValueError("Must provide a start timestamp for timestamp indexing")
             return self._iterable_for_ts_slice(slicearg)
         return index_time_slice_helper(self._index_to_dataset, ts_slice)(sliceobj)
 

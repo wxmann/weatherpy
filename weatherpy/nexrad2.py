@@ -12,7 +12,7 @@ import config
 from weatherpy import colortables
 from weatherpy import logger
 from weatherpy import plotextras
-from weatherpy._pyhelpers import current_time_utc
+from weatherpy._pyhelpers import current_time_utc, index_time_slice_helper
 from weatherpy.calcs import bbox_from_coord
 from weatherpy.maps import mappers
 from weatherpy.maps import projections
@@ -249,61 +249,68 @@ class Nexrad2Request(object):
     def _get_from_index(self, index):
         query = self._radarserver.query()
         query.stations(self._station).all_times()
-        found_ds = self._get_datasets(query)[index]
-        if isinstance(found_ds, list):
-            return [ds.access_urls[self._protocol] for ds in found_ds]
-        return found_ds.access_urls[self._protocol]
+        try:
+            found_ds = self._get_datasets(query)[index]
+            if isinstance(found_ds, list):
+                return (self._open(ds) for ds in found_ds)
+            return self._open(found_ds)
+        except IndexError:
+            raise DatasetAccessException("No dataset found for index: {}".format(index))
 
     def _get_from_timestamp(self, timestamp):
         query = self._radarserver.query()
         query.stations(self._station).time(timestamp)
-        ds = self._get_datasets(query)[0]
-        return ds.access_urls[self._protocol]
+        try:
+            ds = self._get_datasets(query)[0]
+            return self._open(ds)
+        except IndexError:
+            raise DatasetAccessException("No dataset found for timestasmp: {}".format(timestamp))
 
     def _get_from_slice(self, sliceobj):
-        start = sliceobj.start
-        stop = sliceobj.stop
-        step = sliceobj.step
-
-        use_index = any([
-            isinstance(start, int) or isinstance(stop, int),
-            start is None and stop is None
-        ])
-        use_timestamp = isinstance(start, datetime) or isinstance(stop, datetime)
-        invalid = any([
-            use_index and use_timestamp,
-            not isinstance(start, (int, datetime)) and start is not None,
-            not isinstance(stop, (int, datetime)) and stop is not None
-        ])
-        if use_index:
-            return self._get_from_index(sliceobj)
-        elif use_timestamp:
+        def ts_slice(sliceobj):
+            start = sliceobj.start
+            stop = sliceobj.stop
+            step = sliceobj.step
             if stop is None:
                 stop = current_time_utc()
             if start is None:
-                # provide all data for last 90 days,
-                # if the radar server has data back to that point.
-                start = current_time_utc() - timedelta(days=90)
+                raise ValueError("Must provide a start time for slice")
 
             query = self._radarserver.query()
             query.stations(self._station)
             if step is None:
                 query.time_range(start, stop)
                 found_ds = self._get_datasets(query)
-                return tuple(ds.access_urls[self._protocol] for ds in found_ds)
+                return (ds.access_urls[self._protocol] for ds in found_ds)
+            elif isinstance(step, (timedelta, int)):
+                return self._iter_for_stepped_timestamp_slice(query, start, step, stop)
             else:
-                timeslot = start
-                return_urls = []
-                while timeslot <= stop:
-                    query.time(timeslot)
+                raise ValueError("Invalid type of step. Require int or timedelta")
+
+        return index_time_slice_helper(self._get_from_index, ts_slice)(sliceobj)
+
+    def _iter_for_stepped_timestamp_slice(self, query, start, step, stop):
+        if isinstance(step, timedelta):
+            timeslot = start
+            while timeslot < stop:
+                query.time(timeslot)
+                try:
                     found_ds = self._get_datasets(query)[0]
-                    return_urls.append(found_ds.access_urls[self._protocol])
-                    timeslot += step
-                return tuple(return_urls)
-        elif invalid:
-            raise ValueError("Invalid slice, check your values")
-        else:
-            raise ValueError("Invalid slice, check your values")
+                except IndexError:
+                    # if no dataset for the time, exit out of the loop; we're done
+                    return
+                yield self._open(found_ds)
+                timeslot += step
+        elif isinstance(step, int):
+            query.time_range(start, stop)
+            for i, found_ds in enumerate(self._get_datasets(query)):
+                if i % step == 0:
+                    yield self._open(found_ds)
+
+    def _open(self, ds):
+        if self._protocol != 'OPENDAP':
+            raise ValueError("Only support OPENDAP at this time")
+        return ds.access_urls[self._protocol]
 
 
 def _valid_station(st, radarserver):
