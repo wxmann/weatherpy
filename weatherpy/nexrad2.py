@@ -292,7 +292,10 @@ class Nexrad2Request(object):
     def _iter_for_stepped_timestamp_slice(self, query, start, step, stop):
         if isinstance(step, timedelta):
             timeslot = start
-            while timeslot < stop:
+            # this (<=) is inconsistent with the GOES implementation (<) but consistent with the non-step
+            # implementation handled via thredds.
+            # meh?
+            while timeslot <= stop:
                 query.time(timeslot)
                 try:
                     found_ds = self._get_datasets(query)[0]

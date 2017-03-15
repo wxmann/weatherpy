@@ -163,7 +163,7 @@ class TestNexrad2Request(TestCase):
         time_query = self.dummy_radar_server.query.return_value.time
 
         station_query.assert_called_with('KMUX')
-        self.assertEqual(tuple(found), ('1-OPENDAP', '1-OPENDAP'))
+        self.assertEqual(list(found), ['1-OPENDAP'] * 3)
         # calls only happen when we create a tuple
         time_query.assert_has_calls([call(starttime), call(starttime + delta)])
 
