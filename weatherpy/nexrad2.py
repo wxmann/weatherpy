@@ -131,6 +131,8 @@ class Level2RadarPlotter(object):
         self._radarvar = self.dataset.variables[self._varname(self._radartype)]
         self._radarraw = self._radarvar[self._sweep]
         self._radardata = Level2RadarPlotter._transform_radar_pix(self._radarvar, self._radarraw)
+        if self._radartype == 'RadialVelocity':
+            self._radardata *= 1.94384
 
     def _calculate_xy(self):
         self._az = self.dataset.variables[self._varname('azimuth')][self._sweep]

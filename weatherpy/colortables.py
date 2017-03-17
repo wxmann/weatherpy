@@ -108,9 +108,10 @@ def from_pal(palfile):
     colorbar = {}
     with open(palfile) as paldata:
         for line in paldata:
-            bndy, clrs = _parse_pal_line(line)
-            if bndy is not None:
-                colorbar[float(bndy)] = clrs
+            if line and line[0] != ';':
+                bndy, clrs = _parse_pal_line(line)
+                if bndy is not None:
+                    colorbar[float(bndy)] = clrs
     return colorbar
 
 
@@ -171,7 +172,8 @@ class Repo(object):
         'WV_noaa': 'WV_noaa.pal',
         'refl_avl': 'refl_avl.pal',
         'nws_default': 'NWS_Default.pal',
-        'radarscope': 'RadarScope.pal'
+        'radarscope': 'RadarScope.pal',
+        'enhanced_velocity': 'Enhanced-Velocity.pal'
     }
 
     def __init__(self):
@@ -208,4 +210,8 @@ wv_noaa = _repo.WV_noaa
 refl_avl = _repo.refl_avl
 nws = _repo.nws_default
 radarscope = _repo.radarscope
+
+# Velocity
+evans_vel = _repo.evans_vel
+enhanced_velocity = _repo.enhanced_velocity
 
