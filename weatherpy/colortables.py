@@ -212,6 +212,6 @@ nws = _repo.nws_default
 radarscope = _repo.radarscope
 
 # Velocity
-evans_vel = _repo.evans_vel
+# evans_vel = _repo.evans_vel
 enhanced_velocity = _repo.enhanced_velocity
 
