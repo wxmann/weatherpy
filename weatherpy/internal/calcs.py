@@ -1,5 +1,8 @@
 import math
 
+from scipy.ndimage import minimum_filter, maximum_filter
+import numpy as np
+
 
 def destination_point(lon, lat, distance, bearing, R_earth=6378.1):
     lat_rad = math.radians(lat)
@@ -26,3 +29,18 @@ def bbox_from_coord(coord_mat):
 
 def relative_percentage(val, minval, maxval):
     return (val - minval) / (maxval - minval)
+
+
+def extrema(mat, mode='wrap', window=10):
+    """find the indices of local extrema (min and max)
+    in the input array."""
+    mn = minimum_filter(mat, size=window, mode=mode)
+    mx = maximum_filter(mat, size=window, mode=mode)
+    # (mat == mx) true if pixel is equal to the local max
+    # (mat == mn) true if pixel is equal to the local in
+    # Return the indices of the maxima, minima
+    return np.nonzero(mat == mn), np.nonzero(mat == mx)
+
+
+def pa2hPa(pa):
+    return pa * 0.01
