@@ -1,9 +1,8 @@
 from datetime import datetime, timedelta
 
+import cartopy.crs as ccrs
 import netCDF4 as nc
 import numpy as np
-import cartopy.crs as ccrs
-from cartopy.util import add_cyclic_point
 
 import config
 from weatherpy import uaplots
@@ -55,7 +54,7 @@ class GfsPlotter(object):
 
     @plevel.setter
     def plevel(self, newplev):
-        if newplev != 'sfc' and isinstance(newplev, int):
+        if newplev != 'sfc' and not isinstance(newplev, int):
             raise ValueError("Require a pressure level or \'sfc\'")
         self._level = newplev
 
@@ -69,15 +68,13 @@ class GfsPlotter(object):
         lats = self._wrapped_data.dimension_values('lat')
         # NOMADS longitude data is [0, 360] instead of [-180, 180]
         lons_raw = self._wrapped_data.dimension_values('lon')
-        lons_reindexed = np.vectorize(_reindex_lons)(lons_raw)
-        lons = add_cyclic_point(lons_reindexed)
+        lons = lons_raw - 0
 
         kwargs = {'time': self._basetime + timedelta(hours=self.hour)}
         if self.plevel != 'sfc':
             kwargs['lev'] = self.plevel
-        data_raw = self._wrapped_data.variable(GfsPlotter.plotvarmap[self.plot])(**kwargs)
-        data = add_cyclic_point(data_raw)
-        plot_instance = self.plot(data, lats, lons)
+        data = self._wrapped_data.variable(GfsPlotter.plotvarmap[self.plot])(**kwargs)
+        plot_instance = self.plot(data, lons, lats)
 
         plot_instance.make_plot(mapper, colortable)
         return mapper
