@@ -66,9 +66,7 @@ class GfsPlotter(object):
             mapper = self.default_map()
 
         lats = self._wrapped_data.dimension_values('lat')
-        # NOMADS longitude data is [0, 360] instead of [-180, 180]
-        lons_raw = self._wrapped_data.dimension_values('lon')
-        lons = lons_raw - 0
+        lons = self._wrapped_data.dimension_values('lon')
 
         kwargs = {'time': self._basetime + timedelta(hours=self.hour)}
         if self.plevel != 'sfc':
@@ -89,7 +87,7 @@ def _reindex_lons(lon):
 class NcDatasetWrapper(object):
     def __init__(self, data):
         self._data = data
-        dims = (dim for dim in self._data.dimensions)
+        dims = tuple(dim for dim in self._data.dimensions)
         self._dim_values = {dim: data.variables[dim][:] for dim in dims}
 
     def dimension_values(self, dim):
@@ -152,9 +150,11 @@ class NcepModelRequest(object):
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     req = NcepModelRequest('GFS')
-    basetime = datetime(2017, 3, 21, 0, 0)
+    basetime = datetime(2017, 4, 10, 0, 0)
     ds = req[basetime]
     plotter = GfsPlotter(nc.Dataset(ds), basetime)
-    mapper = plotter.make_plot()
+    mapper = plotter.default_map()
+    mapper.extent = (-130, -60, 20, 55)
+    plotter.make_plot(mapper)
     mapper.draw_default()
     plt.show()
