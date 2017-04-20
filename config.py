@@ -3,6 +3,8 @@ from collections import namedtuple
 
 ROOT_PROJECT_DIR = os.path.dirname(os.path.abspath(__file__))
 
+PALETTES_DIR = os.sep.join([ROOT_PROJECT_DIR, 'colortable-palettes'])
+
 SHAPEFILE_DIR = os.sep.join([ROOT_PROJECT_DIR, 'shapefiles'])
 
 radarcatalog = namedtuple('radarcatalog', 'host dataset')

@@ -1,7 +1,6 @@
 import cartopy
 from cartopy import crs as ccrs
 from cartopy import feature as cfeat
-from cartopy.io.img_tiles import OSM
 from matplotlib import pyplot as plt
 
 import config

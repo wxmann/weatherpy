@@ -6,7 +6,7 @@ import netCDF4 as nc
 import numpy as np
 from siphon.catalog import TDSCatalog
 
-from weatherpy import colortables
+from weatherpy import ctables
 from weatherpy import logger
 from weatherpy._pyhelpers import index_time_slice_helper, current_time_utc
 from weatherpy.maps import mappers, projections
@@ -86,17 +86,27 @@ class GINIPlotter(object):
     def default_map(self):
         return mappers.LargeScaleMap(self._crs)
 
-    def make_plot(self, mapper=None, colortable=None):
-        bw = colortable is None or self._sattype == 'VIS'
-        colortable_to_use = colortables.vis_depth if bw else colortable
+    def default_ctable(self):
+        if self._sattype == 'VIS':
+            return ctables.vis.default
+        elif self._sattype == 'IR':
+            return ctables.ir.rainbow
+        elif self._sattype == 'WV':
+            return ctables.wv.accuwx
+        else:
+            return None
 
+    def make_plot(self, mapper=None, colortable=None):
+        if colortable is None:
+            colortable = self.default_ctable()
         if mapper is None:
             mapper = self.default_map()
+
         mapper.initialize_drawing()
         mapper.ax.imshow(self._pixels, extent=self._lim, origin='upper',
                          transform=self._crs,
-                         cmap=colortable_to_use.cmap, norm=colortable_to_use.norm)
-        return mapper
+                         cmap=colortable.cmap, norm=colortable.norm)
+        return mapper, colortable
 
 
 def pixel_to_temp(pixel, unit='C'):

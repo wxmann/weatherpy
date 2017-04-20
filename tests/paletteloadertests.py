@@ -1,11 +1,11 @@
 import unittest
 from unittest import mock
 
-from weatherpy import colortables
-from weatherpy.colortables import rgb, rgba
+from weatherpy.ctables import palette_loader
+from weatherpy.ctables.core import rgb, rgba
 
 
-class ColorTableTests(unittest.TestCase):
+class PaletteLoaderTests(unittest.TestCase):
 
     @mock.patch('matplotlib.colors.LinearSegmentedColormap')
     def test_should_convert_colortable_only_rgb_to_cmap_and_norm(self, cmapfn):
@@ -27,7 +27,7 @@ class ColorTableTests(unittest.TestCase):
             'alpha': [(0.0, 1.0, 1.0), (0.25, 1.0, 1.0), (0.75, 1.0, 1.0), (1.0, 1.0, 1.0)]
         }
 
-        _, norm = colortables.colors_to_cmap_and_norm(name, tbl)
+        _, norm = palette_loader.colorbar_to_cmap_and_norm(name, tbl)
 
         args_last_call = cmapfn.call_args_list[-1][0]
         arg_name, arg_dict = args_last_call[0], args_last_call[1]
@@ -59,7 +59,7 @@ class ColorTableTests(unittest.TestCase):
             'alpha': [(0.0, 1.0, 1.0), (0.25, 1.0, 1.0), (0.5, 1.0, 1.0), (0.75, 1.0, 1.0), (1.0, 0.0, 0.0)]
         }
 
-        _, norm = colortables.colors_to_cmap_and_norm(name, tbl)
+        _, norm = palette_loader.colorbar_to_cmap_and_norm(name, tbl)
 
         args_last_call = cmapfn.call_args_list[-1][0]
         arg_name, arg_dict = args_last_call[0], args_last_call[1]
@@ -77,7 +77,7 @@ class ColorTableTests(unittest.TestCase):
 
     def test_should_load_colortable_with_one_rgb_per_line(self):
         file = '../colortable-palettes/IR_cimms2.pal'
-        clrtbl = colortables.from_pal(file)
+        clrtbl = palette_loader.colorbar_from_pal(file)
         expected = {
             50: [rgb(31, 31, 31, )],
             30: [rgb(0, 113, 113)],
@@ -94,7 +94,7 @@ class ColorTableTests(unittest.TestCase):
 
     def test_should_load_colortable_with_rgba_and_multiple_rgb_per_line(self):
         file = '../colortable-palettes/IR_navy.pal'
-        clrtbl = colortables.from_pal(file)
+        clrtbl = palette_loader.colorbar_from_pal(file)
         expected = {
             30: [rgba(0, 0, 0, 0.0)],
             -30: [rgba(238, 243, 237, 1.0)],

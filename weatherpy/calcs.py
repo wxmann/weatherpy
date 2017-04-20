@@ -22,3 +22,7 @@ def bbox_from_coord(coord_mat):
     lons = coord_mat[:,0]
     lats = coord_mat[:,1]
     return min(lons), max(lons), min(lats), max(lats)
+
+
+def relative_percentage(val, minval, maxval):
+    return (val - minval) / (maxval - minval)

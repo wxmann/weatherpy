@@ -9,7 +9,7 @@ from matplotlib import patches
 from siphon.radarserver import RadarServer, get_radarserver_datasets
 
 import config
-from weatherpy import colortables
+from weatherpy import ctables
 from weatherpy import logger
 from weatherpy import plotextras
 from weatherpy._pyhelpers import current_time_utc, index_time_slice_helper
@@ -164,17 +164,25 @@ class Level2RadarPlotter(object):
         mapper.extent = self._extent
         return mapper
 
+    def default_ctable(self):
+        if self.radartype == 'Reflectivity':
+            return ctables.reflectivity.nws_default
+        elif self.radartype == 'RadialVelocity':
+            return ctables.velocity.default
+        else:
+            return None
+
     def make_plot(self, mapper=None, colortable=None):
         if mapper is not None and isinstance(mapper.crs, ccrs.PlateCarree):
             raise ValueError("Radar images are not supported on the Plate Carree projection at this time.")
         mapper = self._saved_mapper(mapper)
         if colortable is None:
-            colortable = colortables.refl_avl
+            colortable = self.default_ctable()
 
         mapper.initialize_drawing()
         self._mesh = mapper.ax.pcolormesh(self._x, self._y, self._radardata,
                                           cmap=colortable.cmap, norm=colortable.norm, zorder=0)
-        return mapper
+        return mapper, colortable
 
     def range_ring(self, mi=None, draw_ring=True, color=None, limit=True, fit_to_ring=True):
         if self._mesh is None or self._mapper_used is None:

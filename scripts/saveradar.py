@@ -1,13 +1,13 @@
 import os
 from datetime import timedelta, datetime
 
-from weatherpy import colortables
+from weatherpy import ctables
 from weatherpy import plotextras
 from weatherpy.nexrad2 import Nexrad2Request, radar2open
 
 
 def save_reflectivity(savedir, station, start, end, interval=None):
-    ctable = colortables.radarscope
+    ctable = ctables.reflectivity.radarscope
     text_color = '0.85'
 
     if interval is None:
@@ -18,7 +18,7 @@ def save_reflectivity(savedir, station, start, end, interval=None):
     for radar_url in radars:
         with plotextras.figcontext(figsize=(12, 12)) as fig:
             with radar2open(radar_url) as radarplt:
-                radarmap = radarplt.make_plot(colortable=ctable)
+                radarmap, _ = radarplt.make_plot(colortable=ctable)
                 radarplt.range_ring(color=text_color)
                 radarmap.draw_default()
                 plotextras.top_right_inset(radarmap.ax, ctable, color=text_color)
@@ -32,8 +32,8 @@ def save_reflectivity(savedir, station, start, end, interval=None):
                 plotextras.save_image_no_border(fig, fileloc)
 
 if __name__ == '__main__':
-    station = 'KPAH'
-    saveloc = r'C:\Users\tangz\Pictures\2017_WX\170228_IL-MO-AR-IN-KY-IA' + '/{}'.format(station)
-    start = datetime(2017, 3, 1, 5, 30)
-    end = datetime(2017, 3, 1, 6, 0)
+    station = 'KPOE'
+    saveloc = r'your/location/here' + '/{}'.format(station)
+    start = datetime(2017, 4, 2, 21, 30)
+    end = datetime(2017, 4, 2, 22, 30)
     save_reflectivity(saveloc, station, start, end, interval=None)
