@@ -21,6 +21,6 @@ def lambertconformal(lat0=39.0, lon0=-96.0, stdlat1=None, stdlat2=None, r_earth=
                                  standard_parallels=stdparas, globe=globe)
 
 
-def goes_nearside():
+def goes_east_nearside():
     lat_0, lon_0 = 0.0, -75.0
     return ccrs.NearsidePerspective(central_latitude=lat_0, central_longitude=lon_0)

@@ -13,7 +13,7 @@ def latest_east_coast_wv():
     req = goessat.GoesDataRequest('WV', 'EAST-CONUS_4km')
     text_color = 'black'
 
-    mapper = LargeScaleMap(projections.goes_nearside())
+    mapper = LargeScaleMap(projections.goes_east_nearside())
     mapper.extent = (-100, -65, 20, 60)
 
     with goessat.goesopen(req[-1]) as plotter:
