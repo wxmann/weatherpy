@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 
 import config
 from weatherpy import logger
-from weatherpy._pyhelpers import coalesce_kwargs
+from weatherpy.internal.pyhelpers import coalesce_kwargs
 from weatherpy.maps import properties
 
 

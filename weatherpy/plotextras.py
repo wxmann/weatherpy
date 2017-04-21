@@ -8,7 +8,7 @@ import pylab
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
 from weatherpy import logger
-from weatherpy.calcs import miles2km, destination_point
+from weatherpy.internal import miles2km, destination_point
 
 
 def plot_legend(colortable, **plot_kwargs):

@@ -1,7 +1,7 @@
 from matplotlib import colors
 
-from weatherpy.calcs import relative_percentage
 from weatherpy.ctables.core import rgb, rgba, MAX_RGB_VALUE, to_rgba, to_fractional, colortable
+from weatherpy.internal.calcs import relative_percentage
 
 
 def load_colortable(name, palfile):

@@ -1,7 +1,7 @@
 import functools
 from collections import namedtuple
 
-from weatherpy.calcs import relative_percentage
+from weatherpy.internal.calcs import relative_percentage
 
 colortable = namedtuple('colortable', 'cmap norm')
 

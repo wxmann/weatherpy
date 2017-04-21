@@ -1,6 +1,6 @@
 import unittest
 
-from weatherpy._pyhelpers import coalesce_kwargs
+from weatherpy.internal.pyhelpers import coalesce_kwargs
 
 
 class PyHelpersTests(unittest.TestCase):

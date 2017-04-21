@@ -1,7 +1,8 @@
 from unittest import TestCase
 
-from weatherpy import calcs
 import numpy as np
+
+from weatherpy.internal import calcs
 
 
 class TestCalcs(TestCase):

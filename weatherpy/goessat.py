@@ -9,7 +9,7 @@ from siphon.catalog import TDSCatalog
 from weatherpy import ctables
 from weatherpy import logger
 from weatherpy import maps
-from weatherpy._pyhelpers import index_time_slice_helper, current_time_utc
+from weatherpy.internal import index_time_slice_helper, current_time_utc
 from weatherpy.thredds import DatasetAccessException, timestamp_from_dataset
 
 

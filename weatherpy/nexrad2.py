@@ -13,8 +13,7 @@ from weatherpy import ctables
 from weatherpy import logger
 from weatherpy import maps
 from weatherpy import plotextras
-from weatherpy._pyhelpers import current_time_utc, index_time_slice_helper
-from weatherpy.calcs import bbox_from_coord
+from weatherpy.internal import bbox_from_coord, current_time_utc, index_time_slice_helper
 from weatherpy.thredds import DatasetAccessException
 
 DEFAULT_RANGE_MI = 143.
