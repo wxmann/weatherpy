@@ -5,7 +5,7 @@ from matplotlib import patheffects
 
 from weatherpy import goessat
 from weatherpy import plotextras
-from weatherpy.maps import mappers
+from weatherpy import maps
 from weatherpy.maps import projections
 from weatherpy.thredds import timestamp_from_dataset
 
@@ -20,7 +20,7 @@ def save_wv(saveloc):
     for sat in (sat for sat in req[init_time: end_time] if timestamp_from_dataset(sat).minute % 15 == 0):
         with goessat.goesopen(sat) as plotter:
             with plotextras.figcontext(figsize=(16, 16)) as fig:
-                mapper = mappers.LargeScaleMap(projections.goes_east_nearside())
+                mapper = maps.LargeScaleMap(projections.goes_east_nearside())
                 # mapper.extent = (-105, -65, 20, 53)
                 mapper.extent = (-104, -83, 24, 41)
                 mapper.draw_default()

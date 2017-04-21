@@ -5,7 +5,7 @@ from weatherpy import ctables
 from weatherpy import goessat
 from weatherpy import plotextras
 from weatherpy.maps import projections
-from weatherpy.maps.mappers import LargeScaleMap
+from weatherpy.maps import LargeScaleMap
 
 
 def latest_east_coast_wv():

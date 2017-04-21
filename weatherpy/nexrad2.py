@@ -11,11 +11,10 @@ from siphon.radarserver import RadarServer, get_radarserver_datasets
 import config
 from weatherpy import ctables
 from weatherpy import logger
+from weatherpy import maps
 from weatherpy import plotextras
 from weatherpy._pyhelpers import current_time_utc, index_time_slice_helper
 from weatherpy.calcs import bbox_from_coord
-from weatherpy.maps import mappers
-from weatherpy.maps import projections
 from weatherpy.thredds import DatasetAccessException
 
 DEFAULT_RANGE_MI = 143.
@@ -159,8 +158,8 @@ class Level2RadarPlotter(object):
         return processed_data
 
     def default_map(self):
-        crs = projections.lambertconformal(lon0=self._origin[0], lat0=self._origin[1])
-        mapper = mappers.DetailedUSMap(crs, bg_color='black')
+        crs = maps.projections.lambertconformal(lon0=self._origin[0], lat0=self._origin[1])
+        mapper = maps.DetailedUSMap(crs, bg_color='black')
         mapper.extent = self._extent
         return mapper
 

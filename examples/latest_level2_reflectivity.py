@@ -19,4 +19,4 @@ def plot_latest_radar(station):
 
 
 if __name__ == '__main__':
-    plot_latest_radar('KMUX')
+    plot_latest_radar('KFDR')

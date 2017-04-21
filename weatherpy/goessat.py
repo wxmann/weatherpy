@@ -8,8 +8,8 @@ from siphon.catalog import TDSCatalog
 
 from weatherpy import ctables
 from weatherpy import logger
+from weatherpy import maps
 from weatherpy._pyhelpers import index_time_slice_helper, current_time_utc
-from weatherpy.maps import mappers, projections
 from weatherpy.thredds import DatasetAccessException, timestamp_from_dataset
 
 
@@ -36,12 +36,12 @@ class GINIPlotter(object):
         self._geog = self.dataset.variables['LambertConformal']
 
         self._lim = tuple(val * GINIPlotter._KM_TO_M_MULTIPLIER
-                     for val in [min(self._x), max(self._x), min(self._y), max(self._y)])
+                          for val in [min(self._x), max(self._x), min(self._y), max(self._y)])
 
-        self._crs = projections.lambertconformal(lat0=self._geog.latitude_of_projection_origin,
-                                                 lon0=self._geog.longitude_of_central_meridian,
-                                                 stdlat1=self._geog.standard_parallel,
-                                                 r_earth=self._geog.earth_radius)
+        self._crs = maps.projections.lambertconformal(lat0=self._geog.latitude_of_projection_origin,
+                                                      lon0=self._geog.longitude_of_central_meridian,
+                                                      stdlat1=self._geog.standard_parallel,
+                                                      r_earth=self._geog.earth_radius)
         logger.info("[GOES SAT] Finish processing satellite data")
 
     def _get_timestamp(self):
@@ -84,7 +84,7 @@ class GINIPlotter(object):
             return pix
 
     def default_map(self):
-        return mappers.LargeScaleMap(self._crs)
+        return maps.LargeScaleMap(self._crs)
 
     def default_ctable(self):
         if self._sattype == 'VIS':
@@ -182,6 +182,7 @@ class GoesDataRequest(object):
             if slicearg.start is None:
                 raise ValueError("Must provide a start timestamp for timestamp indexing")
             return self._iterable_for_ts_slice(slicearg)
+
         return index_time_slice_helper(self._index_to_dataset, ts_slice)(sliceobj)
 
     def _iterable_for_ts_slice(self, sliceobj):
