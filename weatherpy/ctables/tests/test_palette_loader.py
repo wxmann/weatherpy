@@ -1,11 +1,11 @@
-import unittest
+from unittest import TestCase
 from unittest import mock
 
 from weatherpy.ctables import palette_loader
 from weatherpy.ctables.core import rgb, rgba
 
 
-class PaletteLoaderTests(unittest.TestCase):
+class TestPaletteLoader(TestCase):
 
     @mock.patch('matplotlib.colors.LinearSegmentedColormap')
     def test_should_convert_colortable_only_rgb_to_cmap_and_norm(self, cmapfn):
@@ -76,7 +76,7 @@ class PaletteLoaderTests(unittest.TestCase):
             self.assertEqual(dict1[k], dict2[k])
 
     def test_should_load_colortable_with_one_rgb_per_line(self):
-        file = '../colortable-palettes/IR_cimms2.pal'
+        file = 'resources/IR_cimms2.pal'
         clrtbl = palette_loader.colorbar_from_pal(file)
         expected = {
             50: [rgb(31, 31, 31, )],
@@ -93,7 +93,7 @@ class PaletteLoaderTests(unittest.TestCase):
         self.assertDictEqual(clrtbl, expected)
 
     def test_should_load_colortable_with_rgba_and_multiple_rgb_per_line(self):
-        file = '../colortable-palettes/IR_navy.pal'
+        file = 'resources/IR_navy.pal'
         clrtbl = palette_loader.colorbar_from_pal(file)
         expected = {
             30: [rgba(0, 0, 0, 0.0)],

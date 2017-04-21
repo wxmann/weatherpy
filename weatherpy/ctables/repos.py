@@ -34,7 +34,7 @@ def memoized(func):
     return wrapped_func
 
 
-def to_zero_arg_partial(func):
+def lock_args(func):
     @wraps(func)
     def wrapped_func(*args, **kwargs):
         return lambda: func(*args, **kwargs)
@@ -42,14 +42,14 @@ def to_zero_arg_partial(func):
     return wrapped_func
 
 
-@to_zero_arg_partial
+@lock_args
 @memoized
 def _load_for_repo(ctable_name, filename):
     abs_path = os.sep.join([config.PALETTES_DIR, filename])
     return load_colortable(ctable_name, abs_path)
 
 
-@to_zero_arg_partial
+@lock_args
 def _return_arg(arg):
     return arg
 
