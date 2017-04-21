@@ -1,9 +1,9 @@
-import unittest
+from unittest import TestCase
 
 from weatherpy.internal.pyhelpers import coalesce_kwargs
 
 
-class PyHelpersTests(unittest.TestCase):
+class TestPyhelpers(TestCase):
 
     def test_should_use_kwargs_over_fallbacks(self):
         kwargs = {'a': 1, 'b': 2}
@@ -24,3 +24,5 @@ class PyHelpersTests(unittest.TestCase):
             'c': 33,
             'd': 44
         })
+
+    # TODO add slicing test
