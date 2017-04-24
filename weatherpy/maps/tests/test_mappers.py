@@ -3,6 +3,7 @@ from unittest.mock import patch
 
 import cartopy.crs as ccrs
 import pytest
+import matplotlib.pyplot as plt
 
 from weatherpy import maps
 from weatherpy.maps.mappers import MapperBase, LargeScaleMap
@@ -70,8 +71,9 @@ class TestBaseMapper(TestCase):
         self.assertEqual(kwargs['color'], 'red')
 
 
-@pytest.mark.mpl_image_compare(tolerance=1.0)
+@pytest.mark.mpl_image_compare
 def test_drawing_us_map():
+    fig = plt.figure()
     crs = maps.projections.platecarree()
     mapper = maps.LargeScaleMap(crs)
     # US box
@@ -79,9 +81,10 @@ def test_drawing_us_map():
     mapper.draw_coastlines()
     mapper.draw_borders()
     mapper.draw_states()
+    return fig
 
 
-@pytest.mark.mpl_image_compare(tolerance=1.0)
+@pytest.mark.mpl_image_compare
 def test_drawing_se_map_with_counties():
     crs = maps.projections.lambertconformal()
     mapper = maps.DetailedUSMap(crs)

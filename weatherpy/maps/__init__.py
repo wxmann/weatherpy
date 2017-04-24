@@ -1,2 +1,2 @@
 from .mappers import LargeScaleMap, DetailedUSMap
-from . import projections
+from . import projections, regions

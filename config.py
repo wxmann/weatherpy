@@ -11,5 +11,7 @@ radarcatalog = namedtuple('radarcatalog', 'host dataset')
 
 LEVEL_2_RADAR_CATALOG = radarcatalog('http://thredds.ucar.edu/thredds/', 'NEXRAD Level II Radar from IDD')
 
+TEST_DATA_DIR = os.sep.join([ROOT_PROJECT_DIR, 'weatherpy', 'resources', 'fortests'])
+
 # LEVEL_2_RADAR_CATALOG_BACKUP = radarcatalog('http://tds.meteo.psu.edu:8080/thredds/idd/radars.xml',
 #                                             'NEXRAD Level II Radar WSR-88D')
