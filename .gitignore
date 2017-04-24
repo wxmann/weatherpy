@@ -53,5 +53,6 @@ tests/__pycache__
 weatherpy/__pycache__
 
 # developer note: where I dump shapefiles before unzipping them, and also old shapefiles that I no longer want to use
-shapefiles/raw/
-shapefiles/extras
+resources/shapefiles/raw/
+resources/shapefiles/extras
+resources/shapefiles/do_not_check_in
