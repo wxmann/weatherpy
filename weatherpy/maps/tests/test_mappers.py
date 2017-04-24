@@ -1,17 +1,19 @@
-import unittest
+from unittest import TestCase
 from unittest.mock import patch
 
 import cartopy.crs as ccrs
+import pytest
 
+from weatherpy import maps
 from weatherpy.maps.mappers import MapperBase, LargeScaleMap
 
 
-class CartopyDrawerTest(unittest.TestCase):
+class TestBaseMapper(TestCase):
     def setUp(self):
         self.crs = ccrs.PlateCarree()
         self.extent = (1, 2, 3, 4)
         self._axes_spec = ['set_extent', 'coastlines', '__call__']
-        self.axes_patcher = patch('weatherpy.maps.drawers.plt.axes', spec=self._axes_spec)
+        self.axes_patcher = patch('weatherpy.maps.mappers.plt.axes', spec=self._axes_spec)
         self.ax = self.axes_patcher.start()
 
     def tearDown(self):
@@ -66,3 +68,24 @@ class CartopyDrawerTest(unittest.TestCase):
 
         func_name, args, kwargs = mapper.ax.coastlines.mock_calls[0]
         self.assertEqual(kwargs['color'], 'red')
+
+
+@pytest.mark.mpl_image_compare(tolerance=1.0)
+def test_drawing_us_map():
+    crs = maps.projections.platecarree()
+    mapper = maps.LargeScaleMap(crs)
+    # US box
+    mapper.extent = (-130, -65, 24, 51)
+    mapper.draw_coastlines()
+    mapper.draw_borders()
+    mapper.draw_states()
+
+
+@pytest.mark.mpl_image_compare(tolerance=1.0)
+def test_drawing_se_map_with_counties():
+    crs = maps.projections.lambertconformal()
+    mapper = maps.DetailedUSMap(crs)
+    # SE US box
+    mapper.extent = (-98, -78, 27, 37)
+    mapper.draw_borders()
+    mapper.draw_counties()
