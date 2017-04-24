@@ -1,13 +1,13 @@
-import unittest
 from collections import OrderedDict
 from datetime import datetime, timedelta
+from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
 from weatherpy.goessat import GoesDataRequest
 from weatherpy.thredds import DatasetAccessException, timestamp_from_dataset
 
 
-class GoesDataRequestTest(unittest.TestCase):
+class TestGoesDataRequest(TestCase):
 
     def setUp(self):
         self.sattype = 'WV'
@@ -104,6 +104,3 @@ class GoesDataRequestTest(unittest.TestCase):
         ds_name = 'EAST-CONUS_4km_IR_20170201_0645.gini'
         ts = timestamp_from_dataset(ds_name)
         self.assertEqual(ts, datetime(2017, 2, 1, 6, 45))
-
-if __name__ == '__main__':
-    unittest.main()
