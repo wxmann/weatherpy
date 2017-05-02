@@ -62,7 +62,6 @@ class Level2RadarPlotter(object):
             self.dataset.StationLatitude
         )
 
-        self._mapper_used = None
         self._mesh = None
 
     @property
@@ -173,35 +172,28 @@ class Level2RadarPlotter(object):
     def make_plot(self, mapper=None, colortable=None):
         if mapper is not None and isinstance(mapper.crs, ccrs.PlateCarree):
             raise ValueError("Radar images are not supported on the Plate Carree projection at this time.")
-        mapper = self._saved_mapper(mapper)
+        if mapper is None:
+            mapper = self.default_map()
+            mapper.initialize_drawing()
         if colortable is None:
             colortable = self.default_ctable()
 
-        mapper.initialize_drawing()
         self._mesh = mapper.ax.pcolormesh(self._x, self._y, self._radardata,
                                           cmap=colortable.cmap, norm=colortable.norm, zorder=0)
         return mapper, colortable
 
-    def range_ring(self, mi=None, draw_ring=True, color=None, limit=True, fit_to_ring=True):
-        if self._mesh is None or self._mapper_used is None:
-            raise ValueError("Must make radar plot first before drawing the range ring")
+    def range_ring(self, mapper, mi=None, draw_ring=True, color=None, limit=True, fit_to_ring=True):
         if mi is None:
             mi = DEFAULT_RANGE_MI
-        mapper = self._saved_mapper()
         ring = plotextras.ring_path(mi, self._origin)
         if draw_ring:
             patch = patches.PathPatch(ring, edgecolor=color, facecolor='none', transform=ccrs.PlateCarree())
             mapper.ax.add_patch(patch)
-        if limit:
+        if limit and self._mesh is not None:
             self._mesh.set_clip_path(ring, transform=ccrs.PlateCarree()._as_mpl_transform(mapper.ax))
         if fit_to_ring:
             mapper.extent = bbox_from_coord(ring.vertices)
         return mapper
-
-    def _saved_mapper(self, mapper=None):
-        if self._mapper_used is None:
-            self._mapper_used = mapper if mapper is not None else self.default_map()
-        return self._mapper_used
 
     # only for debugging purposes. Not for public API consumption.
     def draw_hist(self, convert=False):

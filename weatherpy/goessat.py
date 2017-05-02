@@ -101,8 +101,8 @@ class GINIPlotter(object):
             colortable = self.default_ctable()
         if mapper is None:
             mapper = self.default_map()
+            mapper.initialize_drawing()
 
-        mapper.initialize_drawing()
         mapper.ax.imshow(self._pixels, extent=self._lim, origin='upper',
                          transform=self._crs,
                          cmap=colortable.cmap, norm=colortable.norm)
