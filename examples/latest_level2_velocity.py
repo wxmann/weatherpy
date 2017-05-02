@@ -9,7 +9,7 @@ def plot_latest_radar(station):
     with radar2open(Nexrad2Request(station)[-1],
                     radartype='RadialVelocity') as radarplot:
         radarmap, ctable = radarplot.make_plot()
-        radarplot.range_ring(color=text_color)
+        radarplot.range_ring(radarmap, color=text_color)
         radarmap.draw_default()
         plotextras.top_right_inset(radarmap.ax, ctable, color=text_color)
 

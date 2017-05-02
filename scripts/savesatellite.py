@@ -23,6 +23,7 @@ def save_wv(saveloc):
                 mapper = maps.LargeScaleMap(projections.goes_east_nearside())
                 # mapper.extent = (-105, -65, 20, 53)
                 mapper.extent = (-104, -83, 24, 41)
+                mapper.initialize_drawing()
                 mapper.draw_default()
                 plotter.make_plot(mapper=mapper)
                 title_text = 'GOES-E {} {}'.format(

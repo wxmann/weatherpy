@@ -2,8 +2,8 @@ from unittest import TestCase
 from unittest.mock import patch
 
 import cartopy.crs as ccrs
-import pytest
 import matplotlib.pyplot as plt
+import pytest
 
 from weatherpy import maps
 from weatherpy.maps.mappers import MapperBase, LargeScaleMap
@@ -65,6 +65,7 @@ class TestBaseMapper(TestCase):
     def test_should_set_line_property(self):
         mapper = LargeScaleMap(self.crs)
         mapper.properties.strokecolor = 'red'
+        mapper.initialize_drawing()
         mapper.draw_coastlines()
 
         func_name, args, kwargs = mapper.ax.coastlines.mock_calls[0]
@@ -72,12 +73,13 @@ class TestBaseMapper(TestCase):
 
 
 @pytest.mark.mpl_image_compare
-def test_drawing_us_map():
+def test_drawing_large_scale_map():
     fig = plt.figure()
     crs = maps.projections.platecarree()
     mapper = maps.LargeScaleMap(crs)
     # US box
     mapper.extent = (-130, -65, 24, 51)
+    mapper.initialize_drawing()
     mapper.draw_coastlines()
     mapper.draw_borders()
     mapper.draw_states()
@@ -85,10 +87,13 @@ def test_drawing_us_map():
 
 
 @pytest.mark.mpl_image_compare
-def test_drawing_se_map_with_counties():
+def test_drawing_detailed_map_with_counties():
+    fig = plt.figure()
     crs = maps.projections.lambertconformal()
     mapper = maps.DetailedUSMap(crs)
     # SE US box
     mapper.extent = (-98, -78, 27, 37)
+    mapper.initialize_drawing()
     mapper.draw_borders()
     mapper.draw_counties()
+    return fig

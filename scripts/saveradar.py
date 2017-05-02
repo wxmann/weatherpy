@@ -19,7 +19,7 @@ def save_reflectivity(savedir, station, start, end, interval=None):
         with plotextras.figcontext(figsize=(12, 12)) as fig:
             with radar2open(radar_url) as radarplt:
                 radarmap, _ = radarplt.make_plot(colortable=ctable)
-                radarplt.range_ring(color=text_color)
+                radarplt.range_ring(radarmap, color=text_color)
                 radarmap.draw_default()
                 plotextras.top_right_inset(radarmap.ax, ctable, color=text_color)
                 title_text = '{} 0.5 deg Reflectivity, {}'.format(station,

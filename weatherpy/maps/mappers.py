@@ -41,21 +41,25 @@ class MapperBase(object):
 
     @property
     def ax(self):
+        if self._ax is None:
+            # TODO: raise a better exception?
+            raise ValueError("Map is uninitialized!")
         return self._ax
 
-    def initialize_drawing(self):
-        if not self._is_drawing_initialized():
+    def initialize_drawing(self, fig=None, subplot=None):
+        if subplot is not None:
+            if fig is None:
+                fig = plt.gcf()
+            self._ax = fig.add_subplot(subplot, projection=self.crs)
+        else:
             self._ax = plt.axes(projection=self.crs)
-            if self._bg_color is not None:
-                self._ax.background_patch.set_facecolor(self._bg_color)
-            self._set_extent()
 
-    def _is_drawing_initialized(self):
-        return self._ax is not None
+        if self._bg_color is not None:
+            self._ax.background_patch.set_facecolor(self._bg_color)
+        self._set_extent()
 
     def draw_gridlines(self, **kwargs):
-        self.initialize_drawing()
-        self._ax.gridlines(**coalesce_kwargs(kwargs, linestyle='--', draw_labels=False))
+        self.ax.gridlines(**coalesce_kwargs(kwargs, linestyle='--', draw_labels=False))
 
     def draw_default(self):
         raise NotImplementedError("Default Maps need to be implemented in subclasses")
@@ -73,22 +77,19 @@ class LargeScaleMap(MapperBase):
 
     def draw_coastlines(self):
         logger.info("[MAP] Begin drawing coastlines")
-        self.initialize_drawing()
-        self._ax.coastlines(resolution=self.properties.resolution, color=self.properties.strokecolor,
-                            linewidth=self.properties.strokewidth)
+        self.ax.coastlines(resolution=self.properties.resolution, color=self.properties.strokecolor,
+                           linewidth=self.properties.strokewidth)
 
     def draw_borders(self):
         logger.info("[MAP] Begin drawing borders")
-        self.initialize_drawing()
-        self._ax.add_feature(cfeat.BORDERS, edgecolor=self.properties.strokecolor,
-                             linewidth=self.properties.strokewidth)
+        self.ax.add_feature(cfeat.BORDERS, edgecolor=self.properties.strokecolor,
+                            linewidth=self.properties.strokewidth)
 
     def draw_states(self):
         logger.info("[MAP] Begin drawing states")
-        self.initialize_drawing()
         states = cfeat.NaturalEarthFeature(category='cultural', name='admin_1_states_provinces_lakes',
                                            scale=self.properties.resolution, facecolor=self.properties.fill)
-        self._ax.add_feature(states, edgecolor=self.properties.strokecolor, linewidth=self.properties.strokewidth)
+        self.ax.add_feature(states, edgecolor=self.properties.strokecolor, linewidth=self.properties.strokewidth)
 
     def draw_default(self):
         self.draw_coastlines()
@@ -118,14 +119,13 @@ class DetailedUSMap(MapperBase):
     def _add_shp_geoms(self, filename, crs=None, **kwargs):
         if crs is None:
             crs = ccrs.PlateCarree()
-        self._ax.add_geometries(self._shpfile(filename).geometries(), crs, **kwargs)
+        self.ax.add_geometries(self._shpfile(filename).geometries(), crs, **kwargs)
 
     def _shpfile(self, filename):
         return cartopy.io.shapereader.Reader('{0}/{1}/{1}.shp'.format(config.SHAPEFILE_DIR, filename))
 
     def draw_borders(self):
         logger.info("[MAP] Begin drawing borders")
-        self.initialize_drawing()
         self._add_shp_geoms('cb_2015_us_nation_5m', edgecolor=self.border_properties.strokecolor,
                             linewidth=self.border_properties.strokewidth,
                             facecolor=self.border_properties.fill)
@@ -135,7 +135,6 @@ class DetailedUSMap(MapperBase):
 
     def draw_counties(self):
         logger.info("[MAP] Begin drawing counties")
-        self.initialize_drawing()
         # high_res: 'c_11au16'
         # medium_res: 'cb_2015_us_county_5m'
         self._add_shp_geoms('cb_2015_us_county_5m', edgecolor=self.county_properties.strokecolor,
@@ -144,7 +143,6 @@ class DetailedUSMap(MapperBase):
 
     def draw_highways(self):
         logger.info("[MAP] Begin drawing highways")
-        self.initialize_drawing()
         self._add_shp_geoms('tl_2016_us_primaryroads', edgecolor=self.highway_properties.strokecolor,
                             linewidth=self.highway_properties.strokewidth,
                             facecolor=self.highway_properties.fill,

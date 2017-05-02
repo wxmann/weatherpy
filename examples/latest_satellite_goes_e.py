@@ -14,6 +14,7 @@ def latest_east_coast_wv():
 
     mapper = LargeScaleMap(projections.goes_east_nearside())
     mapper.extent = (-100, -65, 20, 60)
+    mapper.initialize_drawing()
 
     with goessat.goesopen(req[-1]) as plotter:
         colortable = ctables.wv.accuwx
