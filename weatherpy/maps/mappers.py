@@ -1,3 +1,5 @@
+import warnings
+
 import cartopy
 from cartopy import crs as ccrs
 from cartopy import feature as cfeat
@@ -46,7 +48,11 @@ class MapperBase(object):
             raise ValueError("Map is uninitialized!")
         return self._ax
 
-    def initialize_drawing(self, fig=None, subplot=None):
+    def initialize_drawing(self, subplot=None, fig=None):
+        if self._ax is not None:
+            warnings.warn('Plot is already initialized. Further calls to this method will have no effect.')
+            return
+
         if subplot is not None:
             if fig is None:
                 fig = plt.gcf()
