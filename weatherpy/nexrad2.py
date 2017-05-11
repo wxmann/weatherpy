@@ -57,7 +57,6 @@ class Level2RadarPlotter(object):
             self._dataset.StationLatitude
         )
 
-        self._x, self._y = self._calculate_xy()
         self._mesh = None
 
     @property
@@ -142,8 +141,9 @@ class Level2RadarPlotter(object):
         if colortable is None:
             colortable = self.default_ctable()
 
+        x, y = self._calculate_xy()
         radardata = self.data_for_sweep(self._sweep)
-        self._mesh = mapper.ax.pcolormesh(self._x, self._y, radardata,
+        self._mesh = mapper.ax.pcolormesh(x, y, radardata,
                                           cmap=colortable.cmap, norm=colortable.norm, zorder=0)
         return mapper, colortable
 

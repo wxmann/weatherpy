@@ -11,7 +11,7 @@ def plot_latest_radar(station):
         refl_panel.initialize_drawing(subplot=121)
         refl_panel.draw_default()
 
-        radarplot.set_radar('Reflectivity')
+        radarplot.radartype = 'Reflectivity'
         _, ctable = radarplot.make_plot(refl_panel)
         radarplot.range_ring(refl_panel, color=text_color)
         plotextras.top_right_inset(refl_panel.ax, ctable, color=text_color)
@@ -21,7 +21,7 @@ def plot_latest_radar(station):
         vel_panel.initialize_drawing(subplot=122)
         vel_panel.draw_default()
 
-        radarplot.set_radar('RadialVelocity')
+        radarplot.radartype = 'RadialVelocity'
         _, ctable = radarplot.make_plot(vel_panel)
         radarplot.range_ring(vel_panel, color=text_color)
         plotextras.top_right_inset(vel_panel.ax, ctable, color=text_color)
@@ -32,4 +32,4 @@ def plot_latest_radar(station):
 
 
 if __name__ == '__main__':
-    plot_latest_radar('KFDR')
+    plot_latest_radar('KSGF')
