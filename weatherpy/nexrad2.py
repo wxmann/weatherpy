@@ -97,7 +97,7 @@ class Level2RadarPlotter(object):
     def origin(self):
         return self._origin
 
-    def _varname(self, prefix):
+    def _getncvar(self, prefix):
         if prefix == self._radartype:
             varname = prefix
         else:
@@ -124,15 +124,16 @@ class Level2RadarPlotter(object):
             self.station, self.timestamp))
 
     def _calculate_radar_pix(self):
-        self._radarvar = self.dataset.variables[self._varname(self._radartype)]
+        self._radarvar = self.dataset.variables[self._getncvar(self._radartype)]
+        self._radarvar.set_auto_maskandscale(False)
         self._radarraw = self._radarvar[self._sweep]
         self._radardata = Level2RadarPlotter._transform_radar_pix(self._radarvar, self._radarraw)
         if self._radartype == 'RadialVelocity':
             self._radardata *= 1.94384
 
     def _calculate_xy(self):
-        self._az = self.dataset.variables[self._varname('azimuth')][self._sweep]
-        self._rng = self.dataset.variables[self._varname('distance')][:]
+        self._az = self.dataset.variables[self._getncvar('azimuth')][self._sweep]
+        self._rng = self.dataset.variables[self._getncvar('distance')][:]
         az_rad = np.deg2rad(self._az)[:, None]
 
         # sin <-> x and cos <-> y since azimuth is measure from 0 deg == North.
@@ -140,19 +141,18 @@ class Level2RadarPlotter(object):
         self._y = self._rng * np.cos(az_rad)
 
     def _calculate_timestamp(self):
-        timevar = self.dataset.variables[self._varname('time')]
+        timevar = self.dataset.variables[self._getncvar('time')]
         raw_time = timevar[self._sweep]
         time_units = timevar.units.replace('msecs', 'milliseconds')
         self._timestamp = nc.num2date(min(raw_time), time_units)
 
     @staticmethod
-    def _transform_radar_pix(radar_var, raw_radar):
-        offset = radar_var.add_offset
-        scaling_factor = radar_var.scale_factor
-        convert = np.vectorize(functools.partial(_convert_pix, offset=offset, scale=scaling_factor),
-                               otypes=[np.float32])
-        processed_data = convert(raw_radar)
-        return processed_data
+    def _transform_radar_pix(radar_var, raw_radar_data):
+        # inspired by http://nbviewer.jupyter.org/gist/dopplershift/356f2e14832e9b676207
+        if '_Unsigned' in radar_var.ncattrs() and radar_var._Unsigned == 'true':
+            raw_radar_data = raw_radar_data.view('uint8')
+        masked_data = np.ma.array(raw_radar_data, mask=raw_radar_data == 0)
+        return masked_data * radar_var.scale_factor + radar_var.add_offset
 
     def default_map(self):
         crs = maps.projections.lambertconformal(lon0=self._origin[0], lat0=self._origin[1])
@@ -204,14 +204,6 @@ class Level2RadarPlotter(object):
         data = data.flatten()
         plt.hist(data, 128)
         plt.yscale('log', nonposy='clip')
-
-
-def _convert_pix(pix, offset, scale):
-    # inspired by http://nbviewer.jupyter.org/gist/dopplershift/356f2e14832e9b676207
-    # convert to unsigned by adding 256 but scaled by scale argument.
-    if pix <= offset:
-        return pix + 256. * scale
-    return pix
 
 
 def get_radar_server(host, dataset):
@@ -310,8 +302,8 @@ class Nexrad2Request(object):
                     yield self._open(found_ds)
 
     def _open(self, ds):
-        if self._protocol != 'OPENDAP':
-            raise ValueError("Only support OPENDAP at this time")
+        # if self._protocol != 'OPENDAP':
+        #     raise ValueError("Only support OPENDAP at this time")
         return ds.access_urls[self._protocol]
 
 
