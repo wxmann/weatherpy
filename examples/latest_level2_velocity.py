@@ -6,6 +6,8 @@ from weatherpy.nexrad2 import Nexrad2Request, radar2open
 
 def plot_latest_radar(station):
     text_color = '0.85'
+    # with radar2open(Nexrad2Request(station)[datetime(2017, 5, 10, 4, 0)],
+    #                 radartype='RadialVelocity') as radarplot:
     with radar2open(Nexrad2Request(station)[-1],
                     radartype='RadialVelocity') as radarplot:
         radarmap, ctable = radarplot.make_plot()
@@ -14,10 +16,11 @@ def plot_latest_radar(station):
         plotextras.top_right_inset(radarmap.ax, ctable, color=text_color)
 
         title_text = '{} 0.5 deg Velocity, {}'.format(station,
-                                                      radarplot.timestamp.strftime('%Y %b %d %H:%M UTC'))
+                                                      radarplot.timestamp().strftime('%Y %b %d %H:%M UTC'))
         plotextras.bottom_right_stamp(title_text, radarmap.ax, color=text_color)
         plt.show()
 
 
 if __name__ == '__main__':
-    plot_latest_radar('KDMX')
+    # plot_latest_radar('KLBB')
+    plot_latest_radar('KSGF')
