@@ -1,7 +1,8 @@
 import matplotlib.pyplot as plt
 
 from weatherpy import plotextras
-from weatherpy.nexrad2 import Nexrad2Request, radar2open
+from weatherpy.radar import radar2open
+from weatherpy.radar import Nexrad2Request
 
 
 def plot_latest_radar(station):

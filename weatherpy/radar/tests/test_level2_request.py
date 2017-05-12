@@ -1,10 +1,10 @@
 from datetime import datetime, timedelta
 from unittest import TestCase
-from unittest.mock import patch, MagicMock, call
+from unittest.mock import MagicMock, patch, call
 
 from siphon.radarserver import RadarQuery
 
-from weatherpy.nexrad2 import Nexrad2Request
+from weatherpy.radar import Nexrad2Request
 from weatherpy.thredds import DatasetAccessException
 
 
@@ -18,14 +18,15 @@ def _create_dummy_dataset(name):
 
 class TestNexrad2Request(TestCase):
     def setUp(self):
-        self.radar_server_patch = patch('weatherpy.nexrad2.RadarServer', autospec=True)
+        self.radar_server_patch = patch('weatherpy.radar.level2_request.RadarServer', autospec=True)
         self.dummy_radar_server = self.radar_server_patch.start()
         self.dummy_radar_server.query = MagicMock(spec=RadarQuery)
 
-        self.radar_request_patch = patch('weatherpy.nexrad2.get_radar_server', return_value=self.dummy_radar_server)
+        self.radar_request_patch = patch('weatherpy.radar.level2_request.get_radar_server',
+                                         return_value=self.dummy_radar_server)
         self.radar_request_patch.start()
 
-        self.check_station_patch = patch('weatherpy.nexrad2._valid_station', return_value=True)
+        self.check_station_patch = patch('weatherpy.radar.level2_request._valid_station', return_value=True)
         self.check_station_patch.start()
 
     def tearDown(self):
@@ -37,12 +38,12 @@ class TestNexrad2Request(TestCase):
         req = Nexrad2Request('KMUX')
         self.assertIsNotNone(req)
 
-    @patch('weatherpy.nexrad2._valid_station', return_value=False)
+    @patch('weatherpy.radar.level2_request._valid_station', return_value=False)
     def test_should_throw_exception_given_incorrect_station(self, validst):
         with self.assertRaises(DatasetAccessException):
             Nexrad2Request('Incorrect_station')
 
-    @patch('weatherpy.nexrad2._sorted_datasets')
+    @patch('weatherpy.radar.level2_request._sorted_datasets')
     def test_should_query_radar_by_index(self, ds_returned):
         dummy_datasets = [_create_dummy_dataset(str(name)) for name in range(3)]
         ds_returned.return_value = dummy_datasets
@@ -51,7 +52,7 @@ class TestNexrad2Request(TestCase):
         found = req[-1]
         self.assertEqual(found, '2-OPENDAP')
 
-    @patch('weatherpy.nexrad2._sorted_datasets')
+    @patch('weatherpy.radar.level2_request._sorted_datasets')
     def test_should_query_radar_by_index_slice(self, ds_returned):
         dummy_datasets = [_create_dummy_dataset(str(name)) for name in range(4)]
         ds_returned.return_value = dummy_datasets
@@ -63,7 +64,7 @@ class TestNexrad2Request(TestCase):
         with self.assertRaises(StopIteration):
             next(found)
 
-    @patch('weatherpy.nexrad2._sorted_datasets')
+    @patch('weatherpy.radar.level2_request._sorted_datasets')
     def test_should_query_radar_by_index_slice_to_end(self, ds_returned):
         dummy_datasets = [_create_dummy_dataset(str(name)) for name in range(3)]
         ds_returned.return_value = dummy_datasets
@@ -75,7 +76,7 @@ class TestNexrad2Request(TestCase):
         with self.assertRaises(StopIteration):
             next(found)
 
-    @patch('weatherpy.nexrad2._sorted_datasets')
+    @patch('weatherpy.radar.level2_request._sorted_datasets')
     def test_should_query_radar_by_all_index_slice(self, ds_returned):
         dummy_datasets = [_create_dummy_dataset(str(name)) for name in range(3)]
         ds_returned.return_value = dummy_datasets
@@ -84,7 +85,7 @@ class TestNexrad2Request(TestCase):
         found = req[:]
         self.assertEqual(list(found), ['0-OPENDAP', '1-OPENDAP', '2-OPENDAP'])
 
-    @patch('weatherpy.nexrad2._sorted_datasets')
+    @patch('weatherpy.radar.level2_request._sorted_datasets')
     def test_should_query_radar_by_timestamp(self, ds_returned):
         dummy_dataset = [_create_dummy_dataset('dataset')]
         ds_returned.return_value = dummy_dataset
@@ -100,7 +101,7 @@ class TestNexrad2Request(TestCase):
         time_query.assert_called_with(timestamp)
         self.assertEqual(found, 'dataset-OPENDAP')
 
-    @patch('weatherpy.nexrad2._sorted_datasets')
+    @patch('weatherpy.radar.level2_request._sorted_datasets')
     def test_should_query_radar_by_timestamp_range(self, ds_returned):
         dummy_datasets = [_create_dummy_dataset(str(name)) for name in range(3)]
         ds_returned.return_value = dummy_datasets
@@ -117,8 +118,8 @@ class TestNexrad2Request(TestCase):
         time_query.assert_called_with(early_time, later_time)
         self.assertEqual(tuple(found), ('0-OPENDAP', '1-OPENDAP', '2-OPENDAP'))
 
-    @patch('weatherpy.nexrad2.current_time_utc')
-    @patch('weatherpy.nexrad2._sorted_datasets')
+    @patch('weatherpy.radar.level2_request.current_time_utc')
+    @patch('weatherpy.radar.level2_request._sorted_datasets')
     def test_should_query_radar_by_timestamp_range_with_no_ending_date(self, ds_returned, time_func):
         dummy_datasets = [_create_dummy_dataset(str(name)) for name in range(3)]
         ds_returned.return_value = dummy_datasets
@@ -135,8 +136,8 @@ class TestNexrad2Request(TestCase):
         time_query.assert_called_with(early_time, time_func.return_value)
         self.assertEqual(tuple(found), ('0-OPENDAP', '1-OPENDAP', '2-OPENDAP'))
 
-    @patch('weatherpy.nexrad2.current_time_utc')
-    @patch('weatherpy.nexrad2._sorted_datasets')
+    @patch('weatherpy.radar.level2_request.current_time_utc')
+    @patch('weatherpy.radar.level2_request._sorted_datasets')
     def test_fail_if_query_radar_by_timestamp_range_with_no_start_date(self, ds_returned, time_func):
         dummy_datasets = [_create_dummy_dataset(str(name)) for name in range(3)]
         ds_returned.return_value = dummy_datasets
@@ -147,7 +148,7 @@ class TestNexrad2Request(TestCase):
         with self.assertRaises(ValueError):
             req[:endtime]
 
-    @patch('weatherpy.nexrad2._sorted_datasets')
+    @patch('weatherpy.radar.level2_request._sorted_datasets')
     def test_should_query_radar_by_timestamp_range_with_timestamp_step(self, ds_returned):
         # TODO: figure out how to use side_effect here
         ds_returned.return_value = [_create_dummy_dataset('1')]
@@ -167,7 +168,7 @@ class TestNexrad2Request(TestCase):
         # calls only happen when we create a tuple
         time_query.assert_has_calls([call(starttime), call(starttime + delta)])
 
-    @patch('weatherpy.nexrad2._sorted_datasets')
+    @patch('weatherpy.radar.level2_request._sorted_datasets')
     def test_should_query_radar_by_timestamp_range_with_int_step(self, ds_returned):
         # TODO: figure out how to use side_effect here
         ds_returned.return_value = [_create_dummy_dataset('1')] * 3
@@ -184,8 +185,8 @@ class TestNexrad2Request(TestCase):
         station_query.assert_called_with('KMUX')
         self.assertEqual(tuple(found), ('1-OPENDAP', '1-OPENDAP'))
 
-    @patch('weatherpy.nexrad2.current_time_utc')
-    @patch('weatherpy.nexrad2._sorted_datasets')
+    @patch('weatherpy.radar.level2_request.current_time_utc')
+    @patch('weatherpy.radar.level2_request._sorted_datasets')
     def test_should_fail_if_use_invalid_step_in_slice(self, ds_returned, time_func):
         dummy_datasets = [_create_dummy_dataset(str(name)) for name in range(3)]
         ds_returned.return_value = dummy_datasets
