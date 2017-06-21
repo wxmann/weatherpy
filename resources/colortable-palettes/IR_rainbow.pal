@@ -2,7 +2,7 @@
 ;  Rainbow Infrared Color Table
 ;  almanydesigns.com/grx
 
-units: ºC
+units: C
 step: 10
 product: IR
 

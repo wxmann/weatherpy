@@ -1,10 +1,10 @@
-;-----------------------------------------------------
+    ;-----------------------------------------------------
 ;  'NAVY' Infrared Color Table
 ;  almanydesigns.com/grx
 
 
 Product: IR
-Units: °C
+Units: C
 Step:  10
 
 Color4:  30   0 0 0  0

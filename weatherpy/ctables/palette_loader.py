@@ -16,7 +16,7 @@ def load_colortable(name, palfile):
 
 def colorbar_from_pal(palfile):
     colorbar = {}
-    with open(palfile) as paldata:
+    with open(palfile, encoding='utf-8') as paldata:
         for line in paldata:
             if line and line[0] != ';':
                 bndy, clrs = _parse_pal_line(line)
