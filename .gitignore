@@ -49,10 +49,13 @@ tests/result_images
 
 # Python
 __pycache__/
-tests/__pycache__
-weatherpy/__pycache__
+*/__pycache__
 
 # developer note: where I dump shapefiles before unzipping them, and also old shapefiles that I no longer want to use
 resources/shapefiles/raw/
 resources/shapefiles/extras
 resources/shapefiles/do_not_check_in
+
+# jupyter notebook
+.ipynb_checkpoints/
+*.ipynb
