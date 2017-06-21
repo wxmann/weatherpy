@@ -1,5 +1,6 @@
 from datetime import datetime
 
+import numpy as np
 import cartopy.crs as ccrs
 from siphon.catalog import TDSCatalog
 
@@ -57,13 +58,7 @@ class Goes16Selection(object):
 class Goes16Plotter(ThreddsDatasetPlotter):
     def __init__(self, dataset):
         super().__init__(dataset)
-        # self._sattype = self.dataset.keywords_vocabulary
-        # self._x = self.dataset.variables['x'][:]
-        # self._y = self.dataset.variables['y'][:]
 
-        # self._timestamp = self._get_timestamp()
-        # self._pixels = self._get_pixels()
-        # metadata
         self._channel = self.dataset.channel_id
         self._timestamp = datetime.strptime(self.dataset.start_date_time, '%Y%j%H%M%S')
 
@@ -92,16 +87,7 @@ class Goes16Plotter(ThreddsDatasetPlotter):
 
     @property
     def sattype(self):
-        if self._channel in (1, 2):
-            return 'VIS'
-        elif self._channel in (3, 4, 5, 6):
-            return 'NEAR-IR'
-        elif self._channel in (7, 11, 12, 13, 14, 15, 16):
-            return 'IR'
-        elif self._channel in (8, 9, 10):
-            return 'WV'
-        else:
-            return 'Unrecognized'
+        return channel_sattype_map.get(self._channel, 'Unrecognized')
 
     def default_map(self):
         return maps.LargeScaleMap(self._crs)
@@ -110,18 +96,21 @@ class Goes16Plotter(ThreddsDatasetPlotter):
         if self.sattype == 'VIS':
             return ctables.vis.default
         elif self.sattype in ('NEAR-IR', 'IR'):
-            return ctables.ir.rainbow
+            return ctables.ir.cimms
         elif self.sattype == 'WV':
             return ctables.wv.accuwx
         else:
             return None
 
     def make_plot(self, mapper=None, colortable=None):
-        # TODO: plot ir
+        # TODO: plot wv
         if colortable is None:
             cmap, norm = self.default_ctable()
         else:
             cmap, norm = colortable.cmap, colortable.norm
+
+        if norm is None:
+            raise ValueError("Colortable norm must be non-null")
 
         if mapper is None:
             mapper = self.default_map()
@@ -131,7 +120,14 @@ class Goes16Plotter(ThreddsDatasetPlotter):
         x = self.dataset.variables['x'][:]
         y = self.dataset.variables['y'][:]
         lim = (x.min(), x.max(), y.min(), y.max())
-        plotdata = self._scmi[:] * norm.vmax
+        plotdata = self._scmi[:]
+
+        if self._scmi.units == '1':
+            plotdata *= norm.vmax
+        elif self._scmi.units.lower() == 'kelvin':
+            plotdata -= 273.15
+        else:
+            raise ValueError("Unsupported plotting units: " + str(self._scmi.units))
 
         logger.info("[GOES SAT] Finish processing satellite pixel data")
 
@@ -139,6 +135,18 @@ class Goes16Plotter(ThreddsDatasetPlotter):
                          transform=self._crs,
                          cmap=cmap, norm=norm)
         return mapper, colortable
+
+
+channel_sattype_map = {}
+for channel in range(1, 3):
+    channel_sattype_map[channel] = 'VIS'
+for channel in range(3, 7):
+    channel_sattype_map[channel] = 'NEAR_IR'
+channel_sattype_map[7] = 'IR'
+for channel in range(8, 11):
+    channel_sattype_map[channel] = 'WV'
+for channel in range(11, 16):
+    channel_sattype_map[channel] = 'IR'
 
 
 def pixel_to_temp(pixel, unit='C'):
@@ -164,11 +172,11 @@ def pixel_to_temp(pixel, unit='C'):
         return tempK
 
 
-# sel = Goes16Selection('CONUS', 2)
-# plotter = sel.closest_to(datetime(2017, 6, 18, 0, 0))
-# mapper, _ = plotter.make_plot()
-# mapper.extent = extents.southern_plains
-# mapper.properties.strokecolor = 'yellow'
-# mapper.draw_default()
-# import matplotlib.pyplot as plt
-# plt.show()
+sel = Goes16Selection('CONUS', 9)
+plotter = sel.latest()
+mapper, _ = plotter.make_plot()
+mapper.extent = extents.central_plains
+mapper.properties.strokecolor = 'yellow'
+mapper.draw_default()
+import matplotlib.pyplot as plt
+plt.show()
