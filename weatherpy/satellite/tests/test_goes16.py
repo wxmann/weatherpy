@@ -53,16 +53,16 @@ class Test_Goes16Selection(TestCase):
 
         self.mock_plotter_func.assert_called_with('GOES16_20170618_011719_0.64_500m_33.3N_91.4W.nc4', Goes16Plotter)
 
-    def test_should_get_closest_to_in_range(self):
+    def test_should_get_around_in_range(self):
         selector = Goes16Selection(SECTOR, CHANNEL)
-        selector.closest_to(datetime(2017, 6, 18, 0, 46))
+        selector.around(datetime(2017, 6, 18, 0, 46))
 
         self.mock_plotter_func.assert_called_with('GOES16_20170618_004719_0.64_500m_33.3N_91.4W.nc4', Goes16Plotter)
 
-    def test_should_raise_closest_to_out_of_range(self):
+    def test_should_raise_around_out_of_range(self):
         selector = Goes16Selection(SECTOR, CHANNEL)
         with self.assertRaises(ValueError):
-            selector.closest_to(datetime(2008, 6, 18, 0, 46))
+            selector.around(datetime(2008, 6, 18, 0, 46))
 
     def tearDown(self):
         self.catalog_patcher.stop()

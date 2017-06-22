@@ -1,3 +1,4 @@
+import re
 from datetime import datetime
 
 import numpy as np
@@ -8,11 +9,6 @@ from weatherpy import logger, ctables, maps
 from weatherpy.maps import extents
 from weatherpy.thredds import ThreddsDatasetPlotter, timestamp_from_dataset, dap_plotter, DatasetAccessException
 
-try:
-    import urlparse
-except ImportError:
-    import urllib.parse as urlparse
-
 CATALOG_BASE_URL = 'http://thredds-jumbo.unidata.ucar.edu/thredds/catalog/satellite/goes16/GOES16/'
 
 
@@ -21,8 +17,8 @@ class Goes16Selection(object):
         self.sector = sector
         self.channel = channel
 
-        parent_catalog = TDSCatalog(urlparse.urljoin(CATALOG_BASE_URL, 'catalog.xml'))
-        self._eligible_dates = sorted(parent_catalog.catalog_refs.keys())
+        parent_catalog = TDSCatalog(CATALOG_BASE_URL + 'catalog.xml')
+        self._eligible_dates = sorted(ref for ref in parent_catalog.catalog_refs.keys() if re.search(r'\d{8}', ref))
 
         if not self._eligible_dates:
             raise DatasetAccessException("No Dates in TDS catalog: {}".format(parent_catalog.catalog_url))
@@ -34,7 +30,7 @@ class Goes16Selection(object):
         eligible_times = sorted(catalog.datasets.keys())
         return dap_plotter(catalog.datasets[eligible_times[-1]], self._plotter)
 
-    def closest_to(self, when):
+    def around(self, when):
         datestr = when.strftime('%Y%m%d')
         if datestr not in self._eligible_dates:
             raise ValueError("Queried time out of range: {}. Range of dates is {} to {}"
@@ -52,7 +48,7 @@ class Goes16Selection(object):
         path = '{date}/{sector}/{channel}/catalog.xml'.format(date=datestr,
                                                               sector=self.sector,
                                                               channel='Channel' + str(self.channel).zfill(2))
-        return TDSCatalog(urlparse.urljoin(CATALOG_BASE_URL, path))
+        return TDSCatalog(CATALOG_BASE_URL + path)
 
 
 class Goes16Plotter(ThreddsDatasetPlotter):
@@ -94,7 +90,7 @@ class Goes16Plotter(ThreddsDatasetPlotter):
 
     def default_ctable(self):
         if self.sattype == 'VIS':
-            return ctables.vis.default
+            return ctables.vis.optimized
         elif self.sattype in ('NEAR-IR', 'IR'):
             return ctables.ir.cimms
         elif self.sattype == 'WV':
@@ -172,11 +168,15 @@ def pixel_to_temp(pixel, unit='C'):
         return tempK
 
 
-sel = Goes16Selection('CONUS', 9)
-plotter = sel.latest()
-mapper, _ = plotter.make_plot()
-mapper.extent = extents.central_plains
-mapper.properties.strokecolor = 'yellow'
-mapper.draw_default()
-import matplotlib.pyplot as plt
-plt.show()
+# sel = Goes16Selection('CONUS', 2)
+# plotter = sel.around(datetime(2017, 6, 20, 18, 0))
+# mapper = plotter.default_map()
+# mapper.initialize_drawing()
+# # plotter = sel.around(datetime(2017, 6, 17, 0, 45))
+# mapper.extent = extents.us_southeast
+# mapper.properties.strokecolor = 'yellow'
+# mapper.draw_default()
+# plotter.make_plot(mapper=mapper, colortable=ctables.vis.optimized)
+# # mapper.extent = extents.central_plains
+# import matplotlib.pyplot as plt
+# plt.show()

@@ -62,6 +62,8 @@ ir.cimms = 'IR_cimms2.pal'
 
 vis = Repo()
 vis.default = 'Visible-depth.pal'
+vis.optimized = 'Visible-depth-modified.pal'
+vis.transparent = 'Visible-trans.pal'
 
 wv = Repo()
 wv.accuwx = 'WV3_accuwx.pal'
