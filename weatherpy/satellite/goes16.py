@@ -1,11 +1,13 @@
 import re
 from datetime import datetime
+from functools import partial
 
 import numpy as np
 import cartopy.crs as ccrs
 from siphon.catalog import TDSCatalog
 
 from weatherpy import logger, ctables, maps
+from weatherpy.internal import relative_percentage
 from weatherpy.maps import extents
 from weatherpy.thredds import ThreddsDatasetPlotter, timestamp_from_dataset, dap_plotter, DatasetAccessException
 
@@ -64,7 +66,7 @@ class Goes16Plotter(ThreddsDatasetPlotter):
         proj = self._scmi.grid_mapping
         geog = self.dataset.variables[proj]
         if proj == 'lambert_projection':
-            globe = ccrs.Globe(ellipse='sphere', semimajor_axis=geog.semi_major,
+            globe = ccrs.Globe(semimajor_axis=geog.semi_major,
                                semiminor_axis=geog.semi_minor)
             self._crs = ccrs.LambertConformal(central_latitude=geog.latitude_of_projection_origin,
                                               central_longitude=geog.longitude_of_central_meridian,
@@ -99,7 +101,6 @@ class Goes16Plotter(ThreddsDatasetPlotter):
             return None
 
     def make_plot(self, mapper=None, colortable=None):
-        # TODO: plot wv
         if colortable is None:
             cmap, norm = self.default_ctable()
         else:
@@ -112,7 +113,6 @@ class Goes16Plotter(ThreddsDatasetPlotter):
             mapper = self.default_map()
             mapper.initialize_drawing()
 
-        # x, y, data
         x = self.dataset.variables['x'][:]
         y = self.dataset.variables['y'][:]
         lim = (x.min(), x.max(), y.min(), y.max())
@@ -121,7 +121,19 @@ class Goes16Plotter(ThreddsDatasetPlotter):
         if self._scmi.units == '1':
             plotdata *= norm.vmax
         elif self._scmi.units.lower() == 'kelvin':
-            plotdata -= 273.15
+            if self.sattype == 'IR':
+                plotdata -= 273.15
+            else:
+
+                def transform_to_norm(val):
+                    maxval = 20 + 273.15
+                    minval = -140 + 273.15
+                    rel_val = 1 - relative_percentage(val, minval, maxval)
+
+                    return norm.vmin + rel_val * (norm.vmax - norm.vmin)
+
+                transform_to_norm = np.vectorize(transform_to_norm, otypes=[np.float32])
+                plotdata = transform_to_norm(plotdata)
         else:
             raise ValueError("Unsupported plotting units: " + str(self._scmi.units))
 
@@ -169,14 +181,15 @@ def pixel_to_temp(pixel, unit='C'):
 
 
 # sel = Goes16Selection('CONUS', 2)
-# plotter = sel.around(datetime(2017, 6, 20, 18, 0))
+# sel = Goes16Selection('CONUS', 9)
+# plotter = sel.around(datetime(2017, 6, 17, 6, 0))
+# # plotter = sel.around(datetime(2017, 6, 20, 18, 45))
 # mapper = plotter.default_map()
 # mapper.initialize_drawing()
-# # plotter = sel.around(datetime(2017, 6, 17, 0, 45))
-# mapper.extent = extents.us_southeast
+# mapper.extent = extents.conus
 # mapper.properties.strokecolor = 'yellow'
 # mapper.draw_default()
-# plotter.make_plot(mapper=mapper, colortable=ctables.vis.optimized)
+# plotter.make_plot(mapper=mapper, colortable=ctables.wv.noaa)
 # # mapper.extent = extents.central_plains
 # import matplotlib.pyplot as plt
 # plt.show()
