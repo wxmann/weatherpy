@@ -82,15 +82,27 @@ class Test_UnitsConversion(unittest.TestCase):
     def test_scale_conversion(self):
         q1 = 0.2
         scale1 = Scale(0, 1)
-        scale2 = Scale(0, 50)
+        scale2 = Scale(10, 60)
 
         q2 = scale1.convert(q1, scale2)
-        self.assertAlmostEqual(q2, 10)
+        self.assertAlmostEqual(q2, 20)
 
     def test_scale_reversal_and_conversion(self):
         q1 = 0.2
         scale1 = Scale(0, 1)
-        scale2 = Scale(0, 50).reverse()
+        scale2 = Scale(10, 60).reverse()
 
         q2 = scale1.convert(q1, scale2)
-        self.assertAlmostEqual(q2, 40)
+        self.assertAlmostEqual(q2, 50)
+
+    def test_scale_conversion_out_of_bounds(self):
+        q1 = 1.5
+        scale1 = Scale(0, 1)
+        scale2 = Scale(10, 50)
+        scale3 = scale2.reverse()
+
+        q2 = scale1.convert(q1, scale2)
+        self.assertAlmostEqual(q2, 70)
+
+        q3 = scale1.convert(q1, scale3)
+        self.assertAlmostEqual(q3, -10)

@@ -1,15 +1,32 @@
-import functools
 from collections import namedtuple
 
-from weatherpy.internal.calcs import relative_percentage
+from weatherpy.units import Scale
 
-colortable = namedtuple('colortable', 'cmap norm')
+
+class Colortable(object):
+    def __init__(self, cmap, norm, unit):
+        self._cmap = cmap
+        self._norm = norm
+        self._unit = unit
+
+    @property
+    def cmap(self):
+        return self._cmap
+
+    @property
+    def norm(self):
+        return self._norm
+
+    @property
+    def unit(self):
+        return self._unit
+
 
 rgb = namedtuple('rgb', 'r g b')
 rgba = namedtuple('rgba', 'r g b a')
 
-MIN_RGB_VALUE = 0
-MAX_RGB_VALUE = 255
+RGB_SCALE = Scale(0, 255)
+UNITY_SCALE = Scale()
 
 
 def to_rgba(rgb_tup):
@@ -19,10 +36,10 @@ def to_rgba(rgb_tup):
 
 
 def to_fractional(rgb_tup):
+    r, g, b = (RGB_SCALE.convert(rgb_tup.r, UNITY_SCALE),
+               RGB_SCALE.convert(rgb_tup.g, UNITY_SCALE),
+               RGB_SCALE.convert(rgb_tup.b, UNITY_SCALE))
     if isinstance(rgb_tup, rgb):
-        return rgb(_rgb_frac(rgb_tup.r), _rgb_frac(rgb_tup.g), _rgb_frac(rgb_tup.b))
+        return rgb(r, g, b)
     else:
-        return rgba(_rgb_frac(rgb_tup.r), _rgb_frac(rgb_tup.g), _rgb_frac(rgb_tup.b), rgb_tup.a)
-
-
-_rgb_frac = functools.partial(relative_percentage, minval=MIN_RGB_VALUE, maxval=MAX_RGB_VALUE)
+        return rgba(r, g, b, rgb_tup.a)

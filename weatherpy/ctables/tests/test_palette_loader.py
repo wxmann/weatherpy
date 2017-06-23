@@ -2,6 +2,7 @@ from unittest import TestCase
 from unittest import mock
 
 import config
+from weatherpy import units
 from weatherpy.ctables import palette_loader
 from weatherpy.ctables.core import rgb, rgba
 
@@ -78,7 +79,7 @@ class TestPaletteLoader(TestCase):
 
     def test_should_load_colortable_with_one_rgb_per_line(self):
         file = config.TEST_DATA_DIR + '/ir_cimms2.pal'
-        clrtbl = palette_loader.colorbar_from_pal(file)
+        clrtbl, _ = palette_loader.colorbar_from_pal(file)
         expected = {
             50: [rgb(31, 31, 31, )],
             30: [rgb(0, 113, 113)],
@@ -95,7 +96,7 @@ class TestPaletteLoader(TestCase):
 
     def test_should_load_colortable_with_rgba_and_multiple_rgb_per_line(self):
         file = config.TEST_DATA_DIR + '/IR_navy.pal'
-        clrtbl = palette_loader.colorbar_from_pal(file)
+        clrtbl, _ = palette_loader.colorbar_from_pal(file)
         expected = {
             30: [rgba(0, 0, 0, 0.0)],
             -30: [rgba(238, 243, 237, 1.0)],
@@ -105,3 +106,11 @@ class TestPaletteLoader(TestCase):
             -90: [rgb(242, 159, 41), rgb(255, 255, 6)]
         }
         self.assertDictEqual(clrtbl, expected)
+
+    def test_should_load_colortable_norm_and_unit(self):
+        file = config.TEST_DATA_DIR + '/ir_cimms2.pal'
+        clrtbl = palette_loader.load_colortable('test', file)
+
+        self.assertEqual(clrtbl.norm.vmax, 50)
+        self.assertEqual(clrtbl.norm.vmin, -110)
+        self.assertEqual(clrtbl.unit, units.CELSIUS)
