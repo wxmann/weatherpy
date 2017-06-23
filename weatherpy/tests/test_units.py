@@ -29,8 +29,9 @@ class Test_Units(unittest.TestCase):
         unit_kt1 = units.get('kt')
         unit_kt2 = units.get('knot')
         unit_kt3 = units.get('knots')
+        unit_kt4 = units.get('kts')
 
-        for unit in (unit_kt1, unit_kt2, unit_kt3):
+        for unit in (unit_kt1, unit_kt2, unit_kt3, unit_kt4):
             self.assertEqual(unit, units.KNOT)
 
     def test_should_get_mps_unit(self):

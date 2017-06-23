@@ -43,22 +43,6 @@ class Unit(object):
         return 'Unit(name={name}, dimension={dim})'.format(name=self.name, dim=self.dimension)
 
 
-# class Quantity(object):
-#     def __init__(self, val, unit):
-#         self._val = val
-#         self._unit = unit
-#
-#     @property
-#     def unit(self):
-#         return self._unit
-#
-#     @property
-#     def val(self):
-#         return self._val
-#
-#     def convert(self):
-
-
 class Scale(object):
     def __init__(self, x0=0.0, x1=1.0):
         self._x0 = x0
@@ -121,7 +105,7 @@ _units_repo = UnitsRepository()
 KELVIN = Unit('Kelvin', 'Temperature', ('K',), _units_repo)
 CELSIUS = Unit('Celsius', 'Temperature', ('C', '°C'), _units_repo)
 DBZ = Unit('dBz', 'Reflectivity', ('dBz',), _units_repo)
-KNOT = Unit('Knot', 'Speed', ('kt', 'knots'), _units_repo)
+KNOT = Unit('Knot', 'Speed', ('kt', 'knots', 'kts'), _units_repo)
 METER_PER_SECOND = Unit('Meter per Second', 'Speed', ('m/s', 'ms-1', 'mps', 'meters per second'), _units_repo)
 
 _units_repo.register_conversion(KELVIN, CELSIUS, lambda k: k - 273.15)
