@@ -80,6 +80,9 @@ class Test_UnitsConversion(unittest.TestCase):
         speed_kt = units.METER_PER_SECOND.convert(speed_mps, units.KNOT)
         self.assertAlmostEqual(speed_kt, 50.00, 2)
 
+
+class Test_Scale(unittest.TestCase):
+
     def test_scale_conversion(self):
         q1 = 0.2
         scale1 = Scale(0, 1)
@@ -87,6 +90,11 @@ class Test_UnitsConversion(unittest.TestCase):
 
         q2 = scale1.convert(q1, scale2)
         self.assertAlmostEqual(q2, 20)
+
+    def test_scale_reversal(self):
+        scale = Scale(5, 55.5)
+        reversed = scale.reverse()
+        self.assertEqual(reversed.bounds, (55.5, 5))
 
     def test_scale_reversal_and_conversion(self):
         q1 = 0.2
@@ -107,3 +115,7 @@ class Test_UnitsConversion(unittest.TestCase):
 
         q3 = scale1.convert(q1, scale3)
         self.assertAlmostEqual(q3, -10)
+
+    def test_scale_should_not_be_created_with_same_upper_lower_bound(self):
+        with self.assertRaises(ValueError):
+            Scale(1, 1)

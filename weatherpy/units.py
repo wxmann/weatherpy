@@ -45,6 +45,8 @@ class Unit(object):
 
 class Scale(object):
     def __init__(self, x0=0.0, x1=1.0):
+        if x0 == x1:
+            raise ValueError("Lower and upper bounds of scale cannot be same")
         self._x0 = x0
         self._x1 = x1
 
