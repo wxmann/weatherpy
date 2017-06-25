@@ -1,15 +1,14 @@
 import re
 from datetime import datetime
-from functools import partial
 
-import numpy as np
 import cartopy.crs as ccrs
+import numpy as np
 from siphon.catalog import TDSCatalog
 
-from weatherpy import logger, ctables, maps
-from weatherpy.internal import relative_percentage
+from weatherpy import logger, ctables, maps, units
 from weatherpy.maps import extents
 from weatherpy.thredds import ThreddsDatasetPlotter, timestamp_from_dataset, dap_plotter, DatasetAccessException
+from weatherpy.units import Scale, UnitsException
 
 CATALOG_BASE_URL = 'http://thredds-jumbo.unidata.ucar.edu/thredds/catalog/satellite/goes16/GOES16/'
 
@@ -100,14 +99,9 @@ class Goes16Plotter(ThreddsDatasetPlotter):
         else:
             return None
 
-    def make_plot(self, mapper=None, colortable=None):
+    def make_plot(self, mapper=None, colortable=None, scale=()):
         if colortable is None:
-            cmap, norm = self.default_ctable()
-        else:
-            cmap, norm = colortable.cmap, colortable.norm
-
-        if norm is None:
-            raise ValueError("Colortable norm must be non-null")
+            colortable = self.default_ctable()
 
         if mapper is None:
             mapper = self.default_map()
@@ -118,31 +112,40 @@ class Goes16Plotter(ThreddsDatasetPlotter):
         lim = (x.min(), x.max(), y.min(), y.max())
         plotdata = self._scmi[:]
 
-        if self._scmi.units == '1':
-            plotdata *= norm.vmax
-        elif self._scmi.units.lower() == 'kelvin':
-            if self.sattype == 'IR':
-                plotdata -= 273.15
+        try:
+            data_units = units.get(self._scmi.units)
+            ctable_units = colortable.unit
+
+            # workaround: for WV colortables, have to do some magic
+            if isinstance(ctable_units, Scale) and not isinstance(data_units, Scale):
+                if not scale:
+                    if self.sattype != 'WV' or data_units != units.KELVIN:
+                        raise ValueError("Must provide explicit scale for this dataset.")
+                    lobound = units.CELSIUS.convert(-130, units.KELVIN)
+                    hibound = units.CELSIUS.convert(10, units.KELVIN)
+                    scale = Scale(lobound, hibound)
+                elif isinstance(scale, tuple):
+                    scale = Scale(*scale)
+
+                plotdata = vectorize_unit_conversion(scale, ctable_units.reverse())(plotdata)
             else:
+                plotdata = vectorize_unit_conversion(data_units, ctable_units)(plotdata)
 
-                def transform_to_norm(val):
-                    maxval = 20 + 273.15
-                    minval = -140 + 273.15
-                    rel_val = 1 - relative_percentage(val, minval, maxval)
-
-                    return norm.vmin + rel_val * (norm.vmax - norm.vmin)
-
-                transform_to_norm = np.vectorize(transform_to_norm, otypes=[np.float32])
-                plotdata = transform_to_norm(plotdata)
-        else:
+        except UnitsException:
             raise ValueError("Unsupported plotting units: " + str(self._scmi.units))
 
         logger.info("[GOES SAT] Finish processing satellite pixel data")
 
         mapper.ax.imshow(plotdata, extent=lim, origin='upper',
                          transform=self._crs,
-                         cmap=cmap, norm=norm)
+                         cmap=colortable.cmap, norm=colortable.norm)
         return mapper, colortable
+
+
+def vectorize_unit_conversion(unit1, unit2):
+    def convert(x):
+        return unit1.convert(x, unit2)
+    return np.vectorize(convert)
 
 
 channel_sattype_map = {}
@@ -157,39 +160,16 @@ for channel in range(11, 16):
     channel_sattype_map[channel] = 'IR'
 
 
-def pixel_to_temp(pixel, unit='C'):
-    r"""
-    Converts pixel value to brightness temperature, according to the formula
-    provided by http://www.goes.noaa.gov/enhanced.html.
-
-    :param pixel: pixel brightness
-    :param unit: unit of output temperature (C for Celsius, F for Fahrenheit, K for Kelvin)
-    (default: Celsius)
-    :return: brightness temperature
-    """
-    if pixel >= 176:
-        tempK = 418 - pixel
-    else:
-        tempK = 330 - (pixel / 2)
-
-    if unit == 'C':
-        return tempK - 273.15
-    elif unit == 'F':
-        return (tempK - 273.15) * 1.8 + 32
-    else:
-        return tempK
-
-
-# sel = Goes16Selection('CONUS', 2)
-# sel = Goes16Selection('CONUS', 9)
-# plotter = sel.around(datetime(2017, 6, 17, 6, 0))
+# # sel = Goes16Selection('CONUS', 2)
+# sel = Goes16Selection('CONUS', 8)
+# plotter = sel.around(datetime(2017, 6, 17, 0, 0))
 # # plotter = sel.around(datetime(2017, 6, 20, 18, 45))
 # mapper = plotter.default_map()
 # mapper.initialize_drawing()
 # mapper.extent = extents.conus
 # mapper.properties.strokecolor = 'yellow'
 # mapper.draw_default()
-# plotter.make_plot(mapper=mapper, colortable=ctables.wv.noaa)
+# plotter.make_plot(mapper=mapper)
 # # mapper.extent = extents.central_plains
 # import matplotlib.pyplot as plt
 # plt.show()
