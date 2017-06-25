@@ -80,6 +80,17 @@ class Test_Colortable(TestCase):
         for k, v in ctable_K.raw.items():
             self.assertEqual(tuple(converted_dict[k]), v)
 
+    def test_convert_colortable_to_same_units(self):
+        ctable_C = Colortable('test', self.test_colors_dict, units.CELSIUS)
+        ctable_C2 = ctable_C.convert(units.CELSIUS)
+        self.assertIs(ctable_C, ctable_C2)
+
+    def test_convert_colortable_to_units_with_str(self):
+        ctable_C = Colortable('test', self.test_colors_dict, units.CELSIUS)
+        ctable_K1 = ctable_C.convert(units.KELVIN)
+        ctable_K2 = ctable_C.convert('K')
+        self.assertEqual(ctable_K1, ctable_K2)
+
     def test_create_and_convert_colortable_scale_units(self):
         original_units = units.Scale(-100, 100)
         new_units = units.Scale()
@@ -97,3 +108,17 @@ class Test_Colortable(TestCase):
 
         for k, v in ctable1.raw.items():
             self.assertEqual(tuple(converted_dict[k]), v)
+
+    def test_colortable_equality(self):
+        ctable1 = Colortable('test', self.test_colors_dict, units.CELSIUS)
+        ctable2 = Colortable('test', self.test_colors_dict, units.CELSIUS)
+        ctable3 = Colortable('test', self.test_colors_dict, units.Scale(-100, 100))
+        ctable4 = Colortable('test2', self.test_colors_dict, units.CELSIUS)
+
+        self.assertEqual(ctable1, ctable2)
+        self.assertNotEqual(ctable1, ctable3)
+        self.assertNotEqual(ctable1, ctable4)
+
+    def tearDown(self):
+        for patcher in (self.load_patcher, self.mpl_norm_patcher, self.mpl_colormap_patcher):
+            patcher.stop()

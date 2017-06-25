@@ -1,10 +1,15 @@
 import unittest
+from unittest import mock
 
 from weatherpy import units
 from weatherpy.units import UnitsException, Scale
 
 
 class Test_Units(unittest.TestCase):
+
+    def setUp(self):
+        self.dummy_repo = mock.MagicMock()
+        self.dummy_repo.register_unit = mock.MagicMock()
 
     def test_should_get_kelvin_unit(self):
         unit_k = units.get('K')
@@ -51,6 +56,19 @@ class Test_Units(unittest.TestCase):
     def test_should_not_get_invalid_unit(self):
         with self.assertRaises(UnitsException):
             units.get('what')
+
+    def test_unit_equality(self):
+        unit1 = units.Unit('kt', 'speed', abbrevs=(), repo=self.dummy_repo)
+        unit2 = units.Unit('kt', 'speed', abbrevs=('kts',), repo=self.dummy_repo)
+        unit3 = units.Unit('mps', 'speed', abbrevs=('kts',), repo=self.dummy_repo)
+
+        self.assertEqual(unit1, unit2)
+        self.assertNotEqual(unit1, unit3)
+        self.assertNotEqual(unit2, unit3)
+
+    def test_should_register_with_repo(self):
+        unit = units.Unit('dummy_unit', 'speed', abbrevs=(), repo=self.dummy_repo)
+        self.dummy_repo.register_unit.assert_called_with(unit, ('dummy_unit',))
 
 
 class Test_UnitsConversion(unittest.TestCase):
@@ -123,3 +141,7 @@ class Test_Scale(unittest.TestCase):
     def test_scale_abbreviations_are_just_bound(self):
         s = Scale(1, 5)
         self.assertEqual(s.abbrevs, ('1-5',))
+
+    def test_scale_eq(self):
+        self.assertEqual(Scale(2, 5.5), Scale(2, 6.5 - 1))
+        self.assertNotEqual(Scale(2, 5.5), Scale(1.5, 3.75))

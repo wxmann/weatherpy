@@ -52,6 +52,20 @@ class Colortable(object):
         new_dict = {self._unit.convert(k, to_unit): v for k, v in self._colors_dict.items()}
         return Colortable(self._basename, new_dict, to_unit)
 
+    def __eq__(self, other):
+        if self is other:
+            return True
+        return isinstance(other, Colortable) and (self._basename,
+                                                  self._cmap,
+                                                  self._norm,
+                                                  self._unit) == (other._basename,
+                                                                  other._cmap,
+                                                                  other._norm,
+                                                                  other._unit)
+
+    def __hash__(self):
+        return hash((self._basename, self._cmap, self._norm, self._unit))
+
 
 rgb = namedtuple('rgb', 'r g b')
 rgba = namedtuple('rgba', 'r g b a')

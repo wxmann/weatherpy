@@ -45,6 +45,14 @@ class Unit(object):
     def __str__(self):
         return 'Unit(name={name}, dimension={dim})'.format(name=self.name, dim=self.dimension)
 
+    def __eq__(self, other):
+        if self is other:
+            return True
+        return isinstance(other, Unit) and (self.name, self.dimension) == (other.name, other.dimension)
+
+    def __hash__(self):
+        return hash((self.name, self.dimension))
+
 
 class Scale(object):
     def __init__(self, x0=0.0, x1=1.0):
@@ -78,7 +86,12 @@ class Scale(object):
         return 'ScaleUnit(min={}, max={})'.format(self._x0, self._x1)
 
     def __eq__(self, other):
+        if self is other:
+            return True
         return isinstance(other, Scale) and other.bounds == self.bounds
+
+    def __hash__(self):
+        return hash(self.bounds)
 
 
 class UnitsRepository(object):
