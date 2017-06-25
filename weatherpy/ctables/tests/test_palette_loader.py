@@ -1,5 +1,4 @@
 from unittest import TestCase
-from unittest import mock
 
 import config
 from weatherpy import units
@@ -9,10 +8,7 @@ from weatherpy.ctables.core import rgb, rgba
 
 class TestPaletteLoader(TestCase):
 
-    @mock.patch('matplotlib.colors.LinearSegmentedColormap')
-    def test_should_convert_colortable_only_rgb_to_cmap_and_norm(self, cmapfn):
-        name = 'test'
-
+    def test_should_convert_colortable_only_rgb_to_cmap_and_norm(self):
         tbl = {
             100: [rgb(31, 31, 31)],
             50: [rgb(31, 255, 255)],
@@ -29,20 +25,11 @@ class TestPaletteLoader(TestCase):
             'alpha': [(0.0, 1.0, 1.0), (0.25, 1.0, 1.0), (0.75, 1.0, 1.0), (1.0, 1.0, 1.0)]
         }
 
-        _, norm = palette_loader.colorbar_to_cmap_and_norm(name, tbl)
+        cmap = palette_loader.colordict_to_cmap(tbl)
 
-        args_last_call = cmapfn.call_args_list[-1][0]
-        arg_name, arg_dict = args_last_call[0], args_last_call[1]
-        self.maxDiff = None
-        self.assertEqual(arg_name, name)
-        self._assert_cmap_dicts_equal(arg_dict, expected_cmap_dict)
-        self.assertEqual(norm.vmin, -100)
-        self.assertEqual(norm.vmax, 100)
+        self._assert_cmap_dicts_equal(cmap, expected_cmap_dict)
 
-    @mock.patch('matplotlib.colors.LinearSegmentedColormap')
-    def test_should_convert_colortable_with_discontinuities_and_alpha_to_cmap_and_norm(self, cmapfn):
-        name = 'test'
-
+    def test_should_convert_colortable_with_discontinuities_and_alpha_to_cmap_and_norm(self):
         tbl = {
             40: [rgba(0, 0, 0, 0.0)],
             30: [rgba(238, 243, 237, 1.0)],
@@ -61,15 +48,9 @@ class TestPaletteLoader(TestCase):
             'alpha': [(0.0, 1.0, 1.0), (0.25, 1.0, 1.0), (0.5, 1.0, 1.0), (0.75, 1.0, 1.0), (1.0, 0.0, 0.0)]
         }
 
-        _, norm = palette_loader.colorbar_to_cmap_and_norm(name, tbl)
+        cmap = palette_loader.colordict_to_cmap(tbl)
 
-        args_last_call = cmapfn.call_args_list[-1][0]
-        arg_name, arg_dict = args_last_call[0], args_last_call[1]
-        self.maxDiff = None
-        self.assertEqual(arg_name, name)
-        self._assert_cmap_dicts_equal(arg_dict, expected_cmap_dict)
-        self.assertEqual(norm.vmin, 0)
-        self.assertEqual(norm.vmax, 40)
+        self._assert_cmap_dicts_equal(cmap, expected_cmap_dict)
 
     def _assert_cmap_dicts_equal(self, dict1, dict2):
         self.assertCountEqual(dict1.keys(), dict2.keys())

@@ -119,3 +119,7 @@ class Test_Scale(unittest.TestCase):
     def test_scale_should_not_be_created_with_same_upper_lower_bound(self):
         with self.assertRaises(ValueError):
             Scale(1, 1)
+
+    def test_scale_abbreviations_are_just_bound(self):
+        s = Scale(1, 5)
+        self.assertEqual(s.abbrevs, ('1-5',))

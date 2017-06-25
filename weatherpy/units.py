@@ -13,7 +13,10 @@ class Unit(object):
     def __init__(self, name, dim, abbrevs, repo):
         self._name = name
         self._dim = dim
-        self._abbrevs = tuple(abbrevs)
+        if abbrevs:
+            self._abbrevs = tuple(abbrevs)
+        else:
+            self._abbrevs = (self._name,)
         self._repo = repo
 
         self._repo.register_unit(self, self._abbrevs)
@@ -53,6 +56,14 @@ class Scale(object):
     @property
     def bounds(self):
         return self._x0, self._x1
+
+    @property
+    def abbrevs(self):
+        return '{}-{}'.format(self._x0, self._x1),
+
+    @property
+    def dimension(self):
+        return None
 
     def convert(self, val, other_scale):
         if not isinstance(other_scale, Scale):

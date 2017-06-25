@@ -1,5 +1,3 @@
-from matplotlib import colors
-
 from weatherpy import units, logger
 from weatherpy.ctables.core import rgb, rgba, to_rgba, to_fractional, Colortable, RGB_SCALE, UNITY_SCALE
 from weatherpy.internal.calcs import relative_percentage
@@ -8,8 +6,7 @@ from weatherpy.units import UnitsException
 
 def load_colortable(name, palfile):
     rawcolors, unit = colorbar_from_pal(palfile)
-    cmap, norm = colorbar_to_cmap_and_norm(name, rawcolors)
-    return Colortable(cmap=cmap, norm=norm, unit=unit)
+    return Colortable(name, rawcolors, unit)
 
 #################################################
 #    Converting .pal to dictionary of colors    #
@@ -77,13 +74,7 @@ def _getcolor(rgba_vals, has_alpha):
 ###################################################
 
 
-def colorbar_to_cmap_and_norm(name, colors_dict):
-    cmap_dict = _rawdict2cmapdict(colors_dict)
-    norm = colors.Normalize(min(colors_dict), max(colors_dict), clip=False)
-    return colors.LinearSegmentedColormap(name, cmap_dict), norm
-
-
-def _rawdict2cmapdict(colors_dict):
+def colordict_to_cmap(colors_dict):
     cmap_dict = {
         'red': [],
         'green': [],
