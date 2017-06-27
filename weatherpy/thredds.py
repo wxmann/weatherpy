@@ -13,6 +13,8 @@ class DatasetAccessException(Exception):
 def timestamp_from_dataset(dataset_name):
     match = re.search(r'\d{8}_\d{4}', dataset_name)
     matched_str = match.group(0)
+    if not matched_str:
+        raise ValueError("Invalid dataset name: " + str(dataset_name))
     return datetime.strptime(matched_str, THREDDS_TIMESTAMP_FORMAT)
 
 

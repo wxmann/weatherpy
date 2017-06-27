@@ -1,55 +1,130 @@
 import re
-from datetime import datetime
+from datetime import datetime, timedelta, date
 
 import cartopy.crs as ccrs
 import numpy as np
+import requests
 from siphon.catalog import TDSCatalog
 
 from weatherpy import logger, ctables, maps, units
-from weatherpy.maps import extents
-from weatherpy.thredds import ThreddsDatasetPlotter, timestamp_from_dataset, dap_plotter, DatasetAccessException
+from weatherpy.internal import pyhelpers
+from weatherpy.thredds import ThreddsDatasetPlotter, dap_plotter, DatasetAccessException
 from weatherpy.units import Scale, UnitsException
 
 CATALOG_BASE_URL = 'http://thredds-jumbo.unidata.ucar.edu/thredds/catalog/satellite/goes16/GOES16/'
 
 
+def conus(channel):
+    return Goes16Selection('CONUS', channel)
+
+
+def sector1(channel):
+    return Goes16Selection('Mesoscale-1', channel)
+
+
+def sector2(channel):
+    return Goes16Selection('Mesoscale-2', channel)
+
+
 class Goes16Selection(object):
+    @staticmethod
+    def _default_action(ds):
+        return dap_plotter(ds, Goes16Plotter)
+
     def __init__(self, sector, channel):
         self.sector = sector
         self.channel = channel
 
-        parent_catalog = TDSCatalog(CATALOG_BASE_URL + 'catalog.xml')
-        self._eligible_dates = sorted(ref for ref in parent_catalog.catalog_refs.keys() if re.search(r'\d{8}', ref))
+    def latest(self, within=None, action=None):
+        if within is None:
+            within = timedelta(minutes=15)
+        if action is None:
+            action = Goes16Selection._default_action
 
-        if not self._eligible_dates:
-            raise DatasetAccessException("No Dates in TDS catalog: {}".format(parent_catalog.catalog_url))
+        right_now = pyhelpers.current_time_utc()
+        datasets = self._datasets_between(right_now - within, right_now, 'desc')
 
-        self._plotter = Goes16Plotter
+        try:
+            _, ds = next(datasets)
+            return action(ds)
+        except StopIteration:
+            raise DatasetAccessException("No datasets found within {} of right now.".format(within))
 
-    def latest(self):
-        catalog = self._get_catalog(self._eligible_dates[-1])
-        eligible_times = sorted(catalog.datasets.keys())
-        return dap_plotter(catalog.datasets[eligible_times[-1]], self._plotter)
+    def around(self, when, within=None, action=None):
+        if within is None:
+            within = timedelta(minutes=15)
+        if action is None:
+            action = Goes16Selection._default_action
 
-    def around(self, when):
-        datestr = when.strftime('%Y%m%d')
-        if datestr not in self._eligible_dates:
-            raise ValueError("Queried time out of range: {}. Range of dates is {} to {}"
-                             .format(datestr, min(self._eligible_dates), max(self._eligible_dates)))
+        dataset_by_deltas = {abs((ts - when).total_seconds()): ds for ts, ds in
+                             self._datasets_between(when - within, when + within, 'desc')}
+        if not dataset_by_deltas:
+            raise DatasetAccessException("No datasets found around: {} +/- {}".format(when, within))
+        smallest_delta = min(dataset_by_deltas.keys())
+        return action(dataset_by_deltas[smallest_delta])
 
-        catalog = self._get_catalog(datestr)
-        eligible_times = sorted(catalog.datasets.keys())
-        timestamps = [timestamp_from_dataset(k) for k in eligible_times]
-        deltas = [abs(ts - when) for ts in timestamps]
+    def between(self, t1, t2, action=None, sort='asc'):
+        if t1 >= t2:
+            raise ValueError("t1 must be less than than t2")
+        if action is None:
+            action = Goes16Selection._default_action
+        if sort not in ('asc', 'desc'):
+            raise ValueError("Sort must be `asc` or `desc`")
 
-        closest_time_index = deltas.index(min(deltas))
-        return dap_plotter(catalog.datasets[eligible_times[closest_time_index]], self._plotter)
+        return (action(ds) for _, ds in self._datasets_between(t1, t2, sort))
 
-    def _get_catalog(self, datestr):
-        path = '{date}/{sector}/{channel}/catalog.xml'.format(date=datestr,
-                                                              sector=self.sector,
-                                                              channel='Channel' + str(self.channel).zfill(2))
+    def since(self, when, action=None, sort='asc'):
+        return self.between(when, pyhelpers.current_time_utc(), action, sort)
+
+    def _datasets_between(self, t1, t2, sort):
+        date1 = t1.date()
+        date2 = t2.date()
+
+        if sort == 'asc':
+            date_on = date1
+            while date_on <= date2:
+                for ts, ds in self._datasets_on(date_on, sort):
+                    if t1 <= ts < t2:
+                        yield ts, ds
+                date_on += timedelta(days=1)
+        elif sort == 'desc':
+            date_on = date2
+            while date_on >= date1:
+                for ts, ds in self._datasets_on(date_on, sort):
+                    if t1 <= ts < t2:
+                        yield ts, ds
+                date_on -= timedelta(days=1)
+        else:
+            raise ValueError("Sort must be `asc` or `desc`")
+
+    def _datasets_on(self, query_date, sort):
+        try:
+            catalog = self._get_catalog(query_date)
+        except requests.exceptions.HTTPError:
+            # Catalog does not exist, thus datasets are empty
+            return ()
+        reverse = sort == 'desc'
+        dataset_keys = sorted(catalog.datasets.keys(), reverse=reverse)
+        for ds_key in dataset_keys:
+            yield timestamp_from_dataset(ds_key), catalog.datasets[ds_key]
+
+    def _get_catalog(self, query_date):
+        # temp workaround since Unidata just changed their catalog structure
+        if query_date < date(2017, 6, 21):
+            templ = '{date}/{sector}/{channel}/catalog.xml'
+        else:
+            templ = '{sector}/{channel}/{date}/catalog.xml'
+        path = templ.format(date=query_date.strftime('%Y%m%d'), sector=self.sector,
+                            channel='Channel' + str(self.channel).zfill(2))
         return TDSCatalog(CATALOG_BASE_URL + path)
+
+
+def timestamp_from_dataset(dataset_name):
+    match = re.search(r'\d{8}_\d{6}', dataset_name)
+    matched_str = match.group(0)
+    if not matched_str:
+        raise ValueError("Invalid dataset name: " + str(dataset_name))
+    return datetime.strptime(matched_str, '%Y%m%d_%H%M%S')
 
 
 class Goes16Plotter(ThreddsDatasetPlotter):
@@ -145,6 +220,7 @@ class Goes16Plotter(ThreddsDatasetPlotter):
 def vectorize_unit_conversion(unit1, unit2):
     def convert(x):
         return unit1.convert(x, unit2)
+
     return np.vectorize(convert)
 
 
@@ -158,18 +234,3 @@ for channel in range(8, 11):
     channel_sattype_map[channel] = 'WV'
 for channel in range(11, 16):
     channel_sattype_map[channel] = 'IR'
-
-
-# # sel = Goes16Selection('CONUS', 2)
-# sel = Goes16Selection('CONUS', 8)
-# plotter = sel.around(datetime(2017, 6, 17, 0, 0))
-# # plotter = sel.around(datetime(2017, 6, 20, 18, 45))
-# mapper = plotter.default_map()
-# mapper.initialize_drawing()
-# mapper.extent = extents.conus
-# mapper.properties.strokecolor = 'yellow'
-# mapper.draw_default()
-# plotter.make_plot(mapper=mapper)
-# # mapper.extent = extents.central_plains
-# import matplotlib.pyplot as plt
-# plt.show()
