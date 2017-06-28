@@ -6,48 +6,37 @@ from weatherpy.units import UnitsException, Scale
 
 
 class Test_Units(unittest.TestCase):
-
     def setUp(self):
         self.dummy_repo = mock.MagicMock()
         self.dummy_repo.register_unit = mock.MagicMock()
 
     def test_should_get_kelvin_unit(self):
-        unit_k = units.get('K')
-        self.assertEqual(unit_k, units.KELVIN)
-
-        unit_k_2 = units.get('Kelvin')
-        self.assertEqual(unit_k_2, units.KELVIN)
+        self._assert_can_get_unit(('K', 'Kelvin'), units.KELVIN)
 
     def test_should_get_celsius_unit(self):
-        unit_c_1 = units.get('C')
-        unit_c_2 = units.get('°C')
-        unit_c_3 = units.get('Celsius')
-
-        for unit in (unit_c_1, unit_c_2, unit_c_3):
-            self.assertEqual(unit, units.CELSIUS)
+        self._assert_can_get_unit(('C', '°C', 'Celsius'), units.CELSIUS)
 
     def test_should_get_dbz_unit(self):
-        unit_dbz = units.get('dbZ')
-        self.assertEqual(unit_dbz, units.DBZ)
+        self._assert_can_get_unit(('dbz',), units.DBZ)
 
     def test_should_get_knots_unit(self):
-        unit_kt1 = units.get('kt')
-        unit_kt2 = units.get('knot')
-        unit_kt3 = units.get('knots')
-        unit_kt4 = units.get('kts')
-
-        for unit in (unit_kt1, unit_kt2, unit_kt3, unit_kt4):
-            self.assertEqual(unit, units.KNOT)
+        self._assert_can_get_unit(('kt', 'knot', 'knots', 'kts'), units.KNOT)
 
     def test_should_get_mps_unit(self):
-        unit_mps1 = units.get('mps')
-        unit_mps2 = units.get('ms-1')
-        unit_mps3 = units.get('m/s')
-        unit_mps4 = units.get('meters per second')
-        unit_mps5 = units.get('meter per second')
+        self._assert_can_get_unit(('mps', 'ms-1', 'm/s', 'meters per second', 'meter per second'),
+                                  units.METER_PER_SECOND)
 
-        for unit in unit_mps1, unit_mps2, unit_mps3, unit_mps4, unit_mps5:
-            self.assertEqual(unit, units.METER_PER_SECOND)
+    def test_should_get_mi_unit(self):
+        self._assert_can_get_unit(('mi', 'mile'), units.MILE)
+
+    def test_should_get_km_unit(self):
+        self._assert_can_get_unit(('km', 'kilometer'), units.KILOMETER)
+
+    def test_should_get_deg_unit(self):
+        self._assert_can_get_unit(('deg', '°'), units.DEGREE)
+
+    def test_should_get_rad_unit(self):
+        self._assert_can_get_unit(('rad',), units.RADIAN)
 
     def test_should_get_scale_unit(self):
         unit = units.get('256')
@@ -70,9 +59,14 @@ class Test_Units(unittest.TestCase):
         unit = units.Unit('dummy_unit', 'speed', abbrevs=(), repo=self.dummy_repo)
         self.dummy_repo.register_unit.assert_called_with(unit, ('dummy_unit',))
 
+    def _assert_can_get_unit(self, abbrs, unit):
+        for abr in abbrs:
+            self.assertEqual(units.get(abr), unit,
+                             msg='Unit: {} does not match expected: {}'.format(str(units.get(abr)),
+                                                                               str(unit)))
+
 
 class Test_UnitsConversion(unittest.TestCase):
-
     def test_convert_C_to_K(self):
         deg_C = 30
         deg_K = units.CELSIUS.convert(deg_C, units.KELVIN)
@@ -98,9 +92,14 @@ class Test_UnitsConversion(unittest.TestCase):
         speed_kt = units.METER_PER_SECOND.convert(speed_mps, units.KNOT)
         self.assertAlmostEqual(speed_kt, 50.00, 2)
 
+    def test_convert_mi_to_km(self):
+        self.assertAlmostEqual(units.MILE.convert(15, units.KILOMETER), 24.1402, 3)
+
+    def test_convert_km_to_mi(self):
+        self.assertAlmostEqual(units.KILOMETER.convert(24.1402, units.MILE), 15, 3)
+
 
 class Test_Scale(unittest.TestCase):
-
     def test_scale_conversion(self):
         q1 = 0.2
         scale1 = Scale(0, 1)

@@ -2,7 +2,7 @@ from unittest import TestCase
 
 import numpy as np
 
-from weatherpy.internal import calcs, miles2km, relative_percentage
+from weatherpy.internal import calcs, relative_percentage
 
 
 class TestCalcs(TestCase):
@@ -16,9 +16,6 @@ class TestCalcs(TestCase):
         self.assertAlmostEqual(lat2, 41.3224612, delta=0.01)
         self.assertAlmostEqual(lon2, -73.2318226, delta=0.01)
 
-    def test_miles2km(self):
-        self.assertAlmostEqual(miles2km(15), 24.1402, 3)
-
     def test_bbox_from_coord(self):
         coord = np.asarray([[-1, -5], [2, 3], [5, 0]])
         x0, x1, y0, y1 = calcs.bbox_from_coord(coord)
@@ -26,6 +23,16 @@ class TestCalcs(TestCase):
         self.assertAlmostEqual(x1, 5)
         self.assertAlmostEqual(y0, -5)
         self.assertAlmostEqual(y1, 3)
+
+    def test_bbox_from_ctr_and_range(self):
+        ctr = (25.76, -80.19)  # miami, fl
+        dist = 300  # km
+        lon0, lon1, lat0, lat1 = calcs.bbox_from_ctr_and_range(ctr, dist)
+
+        self.assertAlmostEqual(lon0, -83.18, delta=0.01)
+        self.assertAlmostEqual(lon1, -77.20, delta=0.01)
+        self.assertAlmostEqual(lat0, 23.06, delta=0.01)
+        self.assertAlmostEqual(lat1, 28.46, delta=0.01)
 
     def test_relative_percentage(self):
         x = 50

@@ -1,10 +1,23 @@
 import math
 
+from weatherpy import units
 
-def destination_point(lon, lat, distance, bearing, R_earth=6378.1):
-    lat_rad = math.radians(lat)
-    lon_rad = math.radians(lon)
-    bearing_rad = math.radians(bearing)
+
+def destination_point(lon, lat, distance, bearing, R_earth=6378.1,
+                      dist_unit=None, bearing_unit=None):
+
+    if bearing_unit is None:
+        bearing_unit = units.DEGREE
+
+    if dist_unit is None:
+        dist_unit = units.KILOMETER
+
+    lat_rad = bearing_unit.convert(lat, units.RADIAN)
+    lon_rad = bearing_unit.convert(lon, units.RADIAN)
+    bearing_rad = bearing_unit.convert(bearing, units.RADIAN)
+
+    if dist_unit != units.KILOMETER:
+        distance = dist_unit.convert(distance, units.KILOMETER)
 
     lat_result_rad = math.asin(math.sin(lat_rad) * math.cos(distance / R_earth) +
                                math.cos(lat_rad) * math.sin(distance / R_earth) * math.cos(bearing_rad))
@@ -14,14 +27,21 @@ def destination_point(lon, lat, distance, bearing, R_earth=6378.1):
     return math.degrees(lon_result_rad), math.degrees(lat_result_rad)
 
 
-def miles2km(mi):
-    return mi * 1.60934
-
-
 def bbox_from_coord(coord_mat):
     lons = coord_mat[:,0]
     lats = coord_mat[:,1]
     return min(lons), max(lons), min(lats), max(lats)
+
+
+def bbox_from_ctr_and_range(ctr, dist, dist_unit=units.KILOMETER):
+    if len(ctr) != 2:
+        raise ValueError("Center point must be a (lat, lon) pair")
+    ctr_lat, ctr_lon = ctr
+    lon0, _ = destination_point(ctr_lon, ctr_lat, dist, 270, dist_unit=dist_unit)
+    lon1, _ = destination_point(ctr_lon, ctr_lat, dist, 90, dist_unit=dist_unit)
+    _, lat0 = destination_point(ctr_lon, ctr_lat, dist, 180, dist_unit=dist_unit)
+    _, lat1 = destination_point(ctr_lon, ctr_lat, dist, 0, dist_unit=dist_unit)
+    return lon0, lon1, lat0, lat1
 
 
 def relative_percentage(val, minval, maxval):

@@ -7,8 +7,8 @@ import numpy as np
 import pylab
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
 
-from weatherpy import logger
-from weatherpy.internal import miles2km, destination_point
+from weatherpy import logger, units
+from weatherpy.internal import destination_point
 
 
 def plot_legend(colortable, **plot_kwargs):
@@ -62,7 +62,7 @@ def bottom_right_stamp(txt, ax, **text_kwargs):
 
 def ring_path(r_mi, ctr):
     theta = np.linspace(0, 360, 100)
-    r_km = miles2km(r_mi)
+    r_km = units.MILE.convert(r_mi, units.KILOMETER)
     dest = np.vectorize(functools.partial(destination_point, ctr[0], ctr[1], r_km))
     ring = np.asarray(dest(theta)).T
     return mpath.Path(ring)

@@ -1,4 +1,6 @@
-from weatherpy.internal import relative_percentage
+import math
+
+from weatherpy import internal
 
 
 def get(unit_abbrev):
@@ -77,7 +79,7 @@ class Scale(object):
         if not isinstance(other_scale, Scale):
             raise UnitsException("Cannot convert to a unit that is not a scale")
         other_x0, other_x1 = other_scale.bounds
-        return relative_percentage(val, self._x0, self._x1) * (other_x1 - other_x0) + other_x0
+        return internal.relative_percentage(val, self._x0, self._x1) * (other_x1 - other_x0) + other_x0
 
     def reverse(self):
         return Scale(self._x1, self._x0)
@@ -132,9 +134,18 @@ KELVIN = Unit('Kelvin', 'Temperature', ('K',), _units_repo)
 CELSIUS = Unit('Celsius', 'Temperature', ('C', '°C'), _units_repo)
 DBZ = Unit('dBz', 'Reflectivity', ('dBz',), _units_repo)
 KNOT = Unit('Knot', 'Speed', ('kt', 'knots', 'kts'), _units_repo)
-METER_PER_SECOND = Unit('Meter per Second', 'Speed', ('m/s', 'ms-1', 'mps', 'meters per second'), _units_repo)
+METER_PER_SECOND = Unit('Meter per Second', 'Speed', ('m/s', 'ms-1', 'mps', 'meters per second'),
+                        _units_repo)
+MILE = Unit('Mile', 'Length', ('mi',), _units_repo)
+KILOMETER = Unit('Kilometer', 'Length', ('km',), _units_repo)
+DEGREE = Unit('Degree', 'Angle', ('deg', '°'), _units_repo)
+RADIAN = Unit('Radian', 'Angle', ('rad',), _units_repo)
 
 _units_repo.register_conversion(KELVIN, CELSIUS, lambda k: k - 273.15)
 _units_repo.register_conversion(CELSIUS, KELVIN, lambda c: c + 273.15)
 _units_repo.register_conversion(METER_PER_SECOND, KNOT, lambda ms: ms * 1.944)
 _units_repo.register_conversion(KNOT, METER_PER_SECOND, lambda kt: kt / 1.944)
+_units_repo.register_conversion(MILE, KILOMETER, lambda mi: mi * 1.60934)
+_units_repo.register_conversion(KILOMETER, MILE, lambda km: km / 1.60934)
+_units_repo.register_conversion(DEGREE, RADIAN, math.radians)
+_units_repo.register_conversion(RADIAN, DEGREE, math.degrees)
