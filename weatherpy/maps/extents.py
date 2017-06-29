@@ -1,3 +1,4 @@
+from weatherpy.internal import calcs
 
 conus = (-127.5, -65.5, 20.5, 52)
 
@@ -32,3 +33,7 @@ carolinas = (-86, -73, 31, 38)
 northeast_megalopolis = (-80.5, -68, 37, 44.5)
 
 california = (-127.5, -112, 30, 43)
+
+
+def zoom(latlon, km):
+    return calcs.bbox_from_ctr_and_range(latlon, km)
