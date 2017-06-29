@@ -22,8 +22,18 @@ class ThreddsDatasetPlotter(object):
     def __init__(self, dataset):
         self.dataset = dataset
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return None
+
     def close(self):
-        self.dataset.close()
+        try:
+            self.dataset.close()
+        except:
+            pass
 
 
 def dap_plotter(catalog_ds, plotter):
