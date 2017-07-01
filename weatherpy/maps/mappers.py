@@ -48,8 +48,11 @@ class MapperBase(object):
             raise ValueError("Map is uninitialized!")
         return self._ax
 
-    def initialize_drawing(self, subplot=None, fig=None):
-        if self._ax is not None:
+    def initialized(self):
+        return self._ax is not None
+
+    def initialize_drawing(self, subplot=None, fig=None, reinit=False):
+        if not reinit and self._ax is not None:
             warnings.warn('Plot is already initialized. Further calls to this method will have no effect.')
             return
 

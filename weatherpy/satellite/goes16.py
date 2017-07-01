@@ -180,6 +180,8 @@ class Goes16Plotter(ThreddsDatasetPlotter):
 
         if mapper is None:
             mapper = self.default_map()
+
+        if not mapper.initialized():
             mapper.initialize_drawing()
 
         x = self.dataset.variables['x'][:]
