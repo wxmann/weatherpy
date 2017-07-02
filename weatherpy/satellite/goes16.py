@@ -7,7 +7,7 @@ import requests
 from siphon.catalog import TDSCatalog
 
 from weatherpy import logger, ctables, maps, units
-from weatherpy.internal import pyhelpers
+from weatherpy.internal import pyhelpers, mask_outside_extent
 from weatherpy.thredds import ThreddsDatasetPlotter, dap_plotter, DatasetAccessException
 from weatherpy.units import Scale, UnitsException
 
@@ -174,20 +174,30 @@ class Goes16Plotter(ThreddsDatasetPlotter):
         else:
             return None
 
-    def make_plot(self, mapper=None, colortable=None, scale=()):
+    def make_plot(self, mapper=None, colortable=None, scale=(), strict=True, extent=None):
         if colortable is None:
             colortable = self.default_ctable()
 
         if mapper is None:
             mapper = self.default_map()
+            if extent is not None:
+                mapper.extent = extent
 
         if not mapper.initialized():
             mapper.initialize_drawing()
 
         x = self.dataset.variables['x'][:]
         y = self.dataset.variables['y'][:]
-        lim = (x.min(), x.max(), y.min(), y.max())
-        plotdata = self._scmi[:]
+
+        apply_extent = mapper.extent is not None and strict
+
+        if apply_extent:
+            xmask, ymask = mask_outside_extent(mapper.extent, self._crs, x, y)
+            x = x[xmask]
+            y = y[ymask]
+            plotdata = self._scmi[ymask, xmask]
+        else:
+            plotdata = self._scmi[:]
 
         try:
             data_units = units.get(self._scmi.units)
@@ -213,9 +223,14 @@ class Goes16Plotter(ThreddsDatasetPlotter):
 
         logger.info("[GOES SAT] Finish processing satellite pixel data")
 
-        mapper.ax.imshow(plotdata, extent=lim, origin='upper',
-                         transform=self._crs,
-                         cmap=colortable.cmap, norm=colortable.norm)
+        if apply_extent:
+            mapper.ax.pcolormesh(x, y, plotdata,
+                                 cmap=colortable.cmap, norm=colortable.norm)
+        else:
+            lim = (x.min(), x.max(), y.min(), y.max())
+            mapper.ax.imshow(plotdata, extent=lim, origin='upper',
+                             transform=self._crs,
+                             cmap=colortable.cmap, norm=colortable.norm)
         return mapper, colortable
 
 

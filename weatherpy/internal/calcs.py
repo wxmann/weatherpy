@@ -1,3 +1,5 @@
+import cartopy.crs as ccrs
+
 import math
 
 from weatherpy import units
@@ -46,3 +48,20 @@ def bbox_from_ctr_and_range(ctr, dist, dist_unit=units.KILOMETER):
 
 def relative_percentage(val, minval, maxval):
     return (val - minval) / (maxval - minval)
+
+
+def mask_outside_extent(extent, crs, x, y):
+    lower_left = crs.transform_point(extent[0], extent[2], ccrs.PlateCarree())
+    upper_right = crs.transform_point(extent[1], extent[3], ccrs.PlateCarree())
+    upper_left = crs.transform_point(extent[0], extent[3], ccrs.PlateCarree())
+    lower_right = crs.transform_point(extent[1], extent[2], ccrs.PlateCarree())
+
+    x0 = min(lower_left[0], upper_left[0])
+    x1 = max(upper_right[0], lower_right[0])
+    y0 = min(lower_left[1], lower_right[1])
+    y1 = max(upper_left[1], upper_right[1])
+
+    xmask = (x <= x1) & (x >= x0)
+    ymask = (y <= y1) & (y >= y0)
+
+    return xmask, ymask
