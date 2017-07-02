@@ -1,6 +1,8 @@
 import re
 from datetime import datetime
 
+import netCDF4
+
 THREDDS_TIMESTAMP_FORMAT = '%Y%m%d_%H%M'
 
 
@@ -11,4 +13,30 @@ class DatasetAccessException(Exception):
 def timestamp_from_dataset(dataset_name):
     match = re.search(r'\d{8}_\d{4}', dataset_name)
     matched_str = match.group(0)
+    if not matched_str:
+        raise ValueError("Invalid dataset name: " + str(dataset_name))
     return datetime.strptime(matched_str, THREDDS_TIMESTAMP_FORMAT)
+
+
+class ThreddsDatasetPlotter(object):
+    def __init__(self, dataset):
+        self.dataset = dataset
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+        return None
+
+    def close(self):
+        try:
+            self.dataset.close()
+        except:
+            pass
+
+
+def dap_plotter(catalog_ds, plotter):
+    dap_url = catalog_ds.access_urls['OPENDAP']
+    ds = netCDF4.Dataset(dap_url)
+    return plotter(ds)

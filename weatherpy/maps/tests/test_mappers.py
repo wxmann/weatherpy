@@ -1,5 +1,5 @@
 from unittest import TestCase
-from unittest.mock import patch
+from unittest.mock import patch, call
 
 import cartopy.crs as ccrs
 import matplotlib.pyplot as plt
@@ -70,6 +70,27 @@ class TestBaseMapper(TestCase):
 
         func_name, args, kwargs = mapper.ax.coastlines.mock_calls[0]
         self.assertEqual(kwargs['color'], 'red')
+
+    def test_get_initialized_status(self):
+        mapper = MapperBase(self.crs)
+        self.assertFalse(mapper.initialized())
+
+        mapper.initialize_drawing()
+        self.assertTrue(mapper.initialized())
+
+    def test_reinitialized_drawing(self):
+        mapper1 = MapperBase(self.crs)
+        mapper1.initialize_drawing()
+        mapper1.initialize_drawing(reinit=True)
+
+        self.ax.assert_has_calls([call(projection=self.crs), call(projection=self.crs)])
+
+    def test_not_reinitialize_drawing(self):
+        mapper2 = MapperBase(self.crs)
+        mapper2.initialize_drawing()
+        mapper2.initialize_drawing()
+
+        self.ax.assert_has_calls([call(projection=self.crs)])
 
 
 @pytest.mark.mpl_image_compare

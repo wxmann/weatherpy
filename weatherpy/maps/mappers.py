@@ -48,8 +48,11 @@ class MapperBase(object):
             raise ValueError("Map is uninitialized!")
         return self._ax
 
-    def initialize_drawing(self, subplot=None, fig=None):
-        if self._ax is not None:
+    def initialized(self):
+        return self._ax is not None
+
+    def initialize_drawing(self, subplot=None, fig=None, reinit=False):
+        if not reinit and self._ax is not None:
             warnings.warn('Plot is already initialized. Further calls to this method will have no effect.')
             return
 
@@ -106,8 +109,8 @@ class LargeScaleMap(MapperBase):
 class DetailedUSMap(MapperBase):
     def __init__(self, crs, bg_color=None):
         super(DetailedUSMap, self).__init__(crs, bg_color)
-        self._borderprops = properties.Properties(strokewidth=1.0, strokecolor='gray', fill='none')
-        self._countyprops = properties.Properties(strokewidth=0.5, strokecolor='gray', fill='none')
+        self._borderprops = properties.Properties(strokewidth=1.0, strokecolor='gray', fill='none', alpha=1.0)
+        self._countyprops = properties.Properties(strokewidth=0.5, strokecolor='gray', fill='none', alpha=1.0)
         self._hwyprops = properties.Properties(strokewidth=0.65, strokecolor='brown', fill='none', alpha=0.8)
 
     @property
@@ -134,10 +137,12 @@ class DetailedUSMap(MapperBase):
         logger.info("[MAP] Begin drawing borders")
         self._add_shp_geoms('cb_2015_us_nation_5m', edgecolor=self.border_properties.strokecolor,
                             linewidth=self.border_properties.strokewidth,
-                            facecolor=self.border_properties.fill)
+                            facecolor=self.border_properties.fill,
+                            alpha=self.border_properties.alpha)
         self._add_shp_geoms('cb_2015_us_state_5m', edgecolor=self.border_properties.strokecolor,
                             linewidth=self.border_properties.strokewidth,
-                            facecolor=self.border_properties.fill)
+                            facecolor=self.border_properties.fill,
+                            alpha=self.border_properties.alpha)
 
     def draw_counties(self):
         logger.info("[MAP] Begin drawing counties")
@@ -145,7 +150,8 @@ class DetailedUSMap(MapperBase):
         # medium_res: 'cb_2015_us_county_5m'
         self._add_shp_geoms('cb_2015_us_county_5m', edgecolor=self.county_properties.strokecolor,
                             linewidth=self.county_properties.strokewidth,
-                            facecolor=self.county_properties.fill)
+                            facecolor=self.county_properties.fill,
+                            alpha=self.county_properties.alpha)
 
     def draw_highways(self):
         logger.info("[MAP] Begin drawing highways")

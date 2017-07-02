@@ -1,0 +1,13 @@
+;-----------------------------------------------------
+;  Depth Visible Color Table - modified by Jim Tang
+;  original color table from almanydesigns.com/grx
+
+
+Product: VIS
+Units: 256
+Step: 16
+
+Color4:  330   250 250 250   255
+Color4:  130   155 155 155   255
+Color4:  70   110 110 110   255
+Color4:   0    0   0   0   255

@@ -95,3 +95,11 @@ class TestPaletteLoader(TestCase):
         self.assertEqual(clrtbl.norm.vmax, 50)
         self.assertEqual(clrtbl.norm.vmin, -110)
         self.assertEqual(clrtbl.unit, units.CELSIUS)
+
+    def test_should_load_colortable_norm_and_scale_unit(self):
+        file = config.TEST_DATA_DIR + '/Visible-depth.pal'
+        clrtbl = palette_loader.load_colortable('test', file)
+
+        self.assertEqual(clrtbl.norm.vmax, 330)
+        self.assertEqual(clrtbl.norm.vmin, 30)
+        self.assertEqual(clrtbl.unit, units.Scale(30, 330))

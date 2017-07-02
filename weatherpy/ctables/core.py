@@ -45,11 +45,14 @@ class Colortable(object):
         return self._unit
 
     def convert(self, to_unit):
-        if isinstance(to_unit, str):
-            to_unit = units.get(to_unit)
         if to_unit == self._unit:
             return self
-        new_dict = {self._unit.convert(k, to_unit): v for k, v in self._colors_dict.items()}
+        elif isinstance(to_unit, str):
+            to_unit = units.get(to_unit)
+
+        # implementation detail: the values of new_dict must be deep-copies
+        # TODO: This bug should be addressed in the near-future
+        new_dict = {self._unit.convert(k, to_unit): list(v) for k, v in self._colors_dict.items()}
         return Colortable(self._basename, new_dict, to_unit)
 
     def __eq__(self, other):
