@@ -62,7 +62,7 @@ def bottom_right_stamp(txt, ax, **text_kwargs):
 
 def ring_path(r_mi, ctr):
     theta = np.linspace(0, 360, 100)
-    r_km = units.MILE.convert(r_mi, units.KILOMETER)
+    r_km = units.KILOMETER.convert(r_mi, units.MILE)
     dest = np.vectorize(functools.partial(destination_point, ctr[0], ctr[1], r_km))
     ring = np.asarray(dest(theta)).T
     return mpath.Path(ring)

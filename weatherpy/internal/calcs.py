@@ -14,12 +14,12 @@ def destination_point(lon, lat, distance, bearing, R_earth=6378.1,
     if dist_unit is None:
         dist_unit = units.KILOMETER
 
-    lat_rad = bearing_unit.convert(lat, units.RADIAN)
-    lon_rad = bearing_unit.convert(lon, units.RADIAN)
-    bearing_rad = bearing_unit.convert(bearing, units.RADIAN)
+    lat_rad = units.RADIAN.convert(lat, bearing_unit)
+    lon_rad = units.RADIAN.convert(lon, bearing_unit)
+    bearing_rad = units.RADIAN.convert(bearing, bearing_unit)
 
     if dist_unit != units.KILOMETER:
-        distance = dist_unit.convert(distance, units.KILOMETER)
+        distance = units.KILOMETER.convert(distance, dist_unit)
 
     lat_result_rad = math.asin(math.sin(lat_rad) * math.cos(distance / R_earth) +
                                math.cos(lat_rad) * math.sin(distance / R_earth) * math.cos(bearing_rad))

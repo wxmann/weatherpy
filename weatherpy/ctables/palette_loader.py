@@ -63,7 +63,7 @@ def _parse_pal_line(line):
 
 def _getcolor(rgba_vals, has_alpha):
     if has_alpha:
-        alpha = RGB_SCALE.convert(float(rgba_vals[3]), UNITY_SCALE)
+        alpha = UNITY_SCALE.convert(float(rgba_vals[3]), RGB_SCALE)
         return rgba(r=int(rgba_vals[0]), g=int(rgba_vals[1]), b=int(rgba_vals[2]), a=alpha)
     else:
         return rgb(r=int(rgba_vals[0]), g=int(rgba_vals[1]), b=int(rgba_vals[2]))

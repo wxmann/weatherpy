@@ -69,12 +69,12 @@ class Test_Units(unittest.TestCase):
 class Test_UnitsConversion(unittest.TestCase):
     def test_convert_C_to_K(self):
         deg_C = 30
-        deg_K = units.CELSIUS.convert(deg_C, units.KELVIN)
+        deg_K = units.KELVIN.convert(deg_C, units.CELSIUS)
         self.assertAlmostEqual(deg_K, 303.15)
 
     def test_convert_K_to_C(self):
         deg_K = 303.15
-        deg_C = units.KELVIN.convert(deg_K, units.CELSIUS)
+        deg_C = units.CELSIUS.convert(deg_K, units.KELVIN)
         self.assertAlmostEqual(deg_C, 30)
 
     def test_convert_to_same_unit(self):
@@ -84,19 +84,19 @@ class Test_UnitsConversion(unittest.TestCase):
 
     def test_convert_kt_to_mps(self):
         speed_kt = 50
-        speed_mps = units.KNOT.convert(speed_kt, units.METER_PER_SECOND)
+        speed_mps = units.METER_PER_SECOND.convert(speed_kt, units.KNOT)
         self.assertAlmostEqual(speed_mps, 25.72, 2)
 
     def test_convert_mps_to_kt(self):
         speed_mps = 25.72
-        speed_kt = units.METER_PER_SECOND.convert(speed_mps, units.KNOT)
+        speed_kt = units.KNOT.convert(speed_mps, units.METER_PER_SECOND)
         self.assertAlmostEqual(speed_kt, 50.00, 2)
 
     def test_convert_mi_to_km(self):
-        self.assertAlmostEqual(units.MILE.convert(15, units.KILOMETER), 24.1402, 3)
+        self.assertAlmostEqual(units.KILOMETER.convert(15, units.MILE), 24.1402, 3)
 
     def test_convert_km_to_mi(self):
-        self.assertAlmostEqual(units.KILOMETER.convert(24.1402, units.MILE), 15, 3)
+        self.assertAlmostEqual(units.MILE.convert(24.1402, units.KILOMETER), 15, 3)
 
 
 class Test_Scale(unittest.TestCase):
@@ -105,7 +105,7 @@ class Test_Scale(unittest.TestCase):
         scale1 = Scale(0, 1)
         scale2 = Scale(10, 60)
 
-        q2 = scale1.convert(q1, scale2)
+        q2 = scale2.convert(q1, scale1)
         self.assertAlmostEqual(q2, 20)
 
     def test_scale_reversal(self):
@@ -118,7 +118,7 @@ class Test_Scale(unittest.TestCase):
         scale1 = Scale(0, 1)
         scale2 = Scale(10, 60).reverse()
 
-        q2 = scale1.convert(q1, scale2)
+        q2 = scale2.convert(q1, scale1)
         self.assertAlmostEqual(q2, 50)
 
     def test_scale_conversion_out_of_bounds(self):
@@ -127,10 +127,10 @@ class Test_Scale(unittest.TestCase):
         scale2 = Scale(10, 50)
         scale3 = scale2.reverse()
 
-        q2 = scale1.convert(q1, scale2)
+        q2 = scale2.convert(q1, scale1)
         self.assertAlmostEqual(q2, 70)
 
-        q3 = scale1.convert(q1, scale3)
+        q3 = scale3.convert(q1, scale1)
         self.assertAlmostEqual(q3, -10)
 
     def test_scale_should_not_be_created_with_same_upper_lower_bound(self):

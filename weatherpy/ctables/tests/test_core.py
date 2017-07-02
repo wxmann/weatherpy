@@ -69,7 +69,7 @@ class Test_Colortable(TestCase):
         ctable_C = Colortable('test', self.test_colors_dict, units.CELSIUS)
         ctable_K = ctable_C.convert(units.KELVIN)
 
-        converted_dict = {units.CELSIUS.convert(k, units.KELVIN): v for k, v in self.test_colors_dict.items()}
+        converted_dict = {units.KELVIN.convert(k, units.CELSIUS): v for k, v in self.test_colors_dict.items()}
 
         self.load_patch.assert_called_with(converted_dict)
         self.mpl_norm_patch.assert_called_with(-100 + 273.15, 100 + 273.15, clip=False)
@@ -98,7 +98,7 @@ class Test_Colortable(TestCase):
         ctable0 = Colortable('test', self.test_colors_dict)
         ctable1 = ctable0.convert(new_units)
 
-        converted_dict = {original_units.convert(k, new_units): v for k, v in self.test_colors_dict.items()}
+        converted_dict = {new_units.convert(k, original_units): v for k, v in self.test_colors_dict.items()}
 
         self.load_patch.assert_called_with(converted_dict)
         self.mpl_norm_patch.assert_called_with(0, 1, clip=False)

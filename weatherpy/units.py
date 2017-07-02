@@ -35,14 +35,14 @@ class Unit(object):
     def abbrevs(self):
         return self._abbrevs
 
-    def convert(self, val, to_unit):
-        if to_unit == self:
+    def convert(self, val, from_unit):
+        if from_unit == self:
             return val
         if self._repo is None:
             raise UnitsException("Unexpected error: repo not initialized")
-        if to_unit.dimension != self.dimension:
-            raise ValueError("Cannot convert to a unit of different dimension: " + str(to_unit))
-        return self._repo.convert(val, self, to_unit)
+        if from_unit.dimension != self.dimension:
+            raise ValueError("Cannot convert from a unit of different dimension: " + str(from_unit))
+        return self._repo.convert(val, from_unit, self)
 
     def __str__(self):
         return 'Unit(name={name}, dimension={dim})'.format(name=self.name, dim=self.dimension)
@@ -75,11 +75,11 @@ class Scale(object):
     def dimension(self):
         return None
 
-    def convert(self, val, other_scale):
-        if not isinstance(other_scale, Scale):
+    def convert(self, val, original_scale):
+        if not isinstance(original_scale, Scale):
             raise UnitsException("Cannot convert to a unit that is not a scale")
-        other_x0, other_x1 = other_scale.bounds
-        return internal.relative_percentage(val, self._x0, self._x1) * (other_x1 - other_x0) + other_x0
+        original_x0, original_x1 = original_scale.bounds
+        return internal.relative_percentage(val, original_x0, original_x1) * (self._x1 - self._x0) + self._x0
 
     def reverse(self):
         return Scale(self._x1, self._x0)

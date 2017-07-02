@@ -52,7 +52,7 @@ class Colortable(object):
 
         # implementation detail: the values of new_dict must be deep-copies
         # TODO: This bug should be addressed in the near-future
-        new_dict = {self._unit.convert(k, to_unit): list(v) for k, v in self._colors_dict.items()}
+        new_dict = {to_unit.convert(k, self._unit): v for k, v in self._colors_dict.items()}
         return Colortable(self._basename, new_dict, to_unit)
 
     def __eq__(self, other):
@@ -84,9 +84,9 @@ def to_rgba(rgb_tup):
 
 
 def to_fractional(rgb_tup):
-    r, g, b = (RGB_SCALE.convert(rgb_tup.r, UNITY_SCALE),
-               RGB_SCALE.convert(rgb_tup.g, UNITY_SCALE),
-               RGB_SCALE.convert(rgb_tup.b, UNITY_SCALE))
+    r, g, b = (UNITY_SCALE.convert(rgb_tup.r, RGB_SCALE),
+               UNITY_SCALE.convert(rgb_tup.g, RGB_SCALE),
+               UNITY_SCALE.convert(rgb_tup.b, RGB_SCALE))
     if isinstance(rgb_tup, rgb):
         return rgb(r, g, b)
     else:
