@@ -6,9 +6,10 @@ from cartopy import feature as cfeat
 from matplotlib import pyplot as plt
 
 import config
-from weatherpy import logger
+from weatherpy.internal import logger
 from weatherpy.internal.pyhelpers import coalesce_kwargs
 from weatherpy.maps import properties
+from weatherpy.maps.extents import geobbox
 
 
 class MapperBase(object):
@@ -31,8 +32,10 @@ class MapperBase(object):
     def extent(self, extent_coord):
         if extent_coord is None or len(extent_coord) != 4:
             raise ValueError("Extent must be of form (x0, x1, y0, y1)")
+
         logger.info('[MAP] Setting extent to (lon0, lon1, lat0, lat1): {}'.format(extent_coord))
-        self._extent = tuple(extent_coord)
+
+        self._extent = geobbox(*extent_coord)
         self._extent_set = False
         self._set_extent()
 

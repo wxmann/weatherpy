@@ -10,10 +10,9 @@ from siphon.radarserver import RadarServer, get_radarserver_datasets
 
 import config
 from weatherpy import ctables
-from weatherpy import logger
 from weatherpy import maps
 from weatherpy import plotextras
-from weatherpy.internal import bbox_from_coord, current_time_utc, index_time_slice_helper
+from weatherpy.internal import bbox_from_coord, current_time_utc, index_time_slice_helper, logger
 from weatherpy.thredds import DatasetAccessException
 
 DEFAULT_RANGE_MI = 143.

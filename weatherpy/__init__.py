@@ -1,1 +1,0 @@
-from weatherpy.internal.log import logger

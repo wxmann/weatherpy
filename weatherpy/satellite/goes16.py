@@ -2,14 +2,13 @@ import re
 from datetime import datetime, timedelta, date
 
 import cartopy.crs as ccrs
-import numpy as np
 import requests
 from siphon.catalog import TDSCatalog
 
-from weatherpy import logger, ctables, maps, units
-from weatherpy.internal import pyhelpers, mask_outside_extent
+from weatherpy import ctables, maps, units
+from weatherpy.internal import pyhelpers, mask_outside_extent, logger
 from weatherpy.thredds import ThreddsDatasetPlotter, dap_plotter, DatasetAccessException
-from weatherpy.units import Scale, UnitsException
+from weatherpy.units import Scale, UnitsException, arrayconvert
 
 CATALOG_BASE_URL = 'http://thredds-jumbo.unidata.ucar.edu/thredds/catalog/satellite/goes16/GOES16/'
 
@@ -214,9 +213,9 @@ class Goes16Plotter(ThreddsDatasetPlotter):
                 elif isinstance(scale, tuple):
                     scale = Scale(*scale)
 
-                plotdata = vectorize_unit_conversion(scale, ctable_units.reverse())(plotdata)
+                plotdata = arrayconvert(scale, ctable_units.reverse())(plotdata)
             else:
-                plotdata = vectorize_unit_conversion(data_units, ctable_units)(plotdata)
+                plotdata = arrayconvert(data_units, ctable_units)(plotdata)
 
         except UnitsException:
             raise ValueError("Unsupported plotting units: " + str(self._scmi.units))
@@ -232,13 +231,6 @@ class Goes16Plotter(ThreddsDatasetPlotter):
                              transform=self._crs,
                              cmap=colortable.cmap, norm=colortable.norm)
         return mapper, colortable
-
-
-def vectorize_unit_conversion(unit1, unit2):
-    def convert(x):
-        return unit1.convert(x, unit2)
-
-    return np.vectorize(convert)
 
 
 channel_sattype_map = {}

@@ -1,5 +1,6 @@
-from weatherpy import units, logger
+from weatherpy import units
 from weatherpy.ctables.core import rgb, rgba, to_rgba, to_fractional, Colortable, RGB_SCALE, UNITY_SCALE
+from weatherpy.internal import logger
 from weatherpy.internal.calcs import relative_percentage
 from weatherpy.units import UnitsException
 

@@ -1,6 +1,6 @@
 import math
 
-from weatherpy import internal
+import numpy as np
 
 
 def get(unit_abbrev):
@@ -79,7 +79,10 @@ class Scale(object):
         if not isinstance(original_scale, Scale):
             raise UnitsException("Cannot convert to a unit that is not a scale")
         original_x0, original_x1 = original_scale.bounds
-        return internal.relative_percentage(val, original_x0, original_x1) * (self._x1 - self._x0) + self._x0
+
+        # TODO: first half of this expression is encapsulate by internal.relative_percentage function,
+        # but we've hit some import hell/circular dependency problems. We might want to fix this.
+        return (val - original_x0) / (original_x1 - original_x0) * (self._x1 - self._x0) + self._x0
 
     def reverse(self):
         return Scale(self._x1, self._x0)
@@ -149,3 +152,10 @@ _units_repo.register_conversion(MILE, KILOMETER, lambda mi: mi * 1.60934)
 _units_repo.register_conversion(KILOMETER, MILE, lambda km: km / 1.60934)
 _units_repo.register_conversion(DEGREE, RADIAN, math.radians)
 _units_repo.register_conversion(RADIAN, DEGREE, math.degrees)
+
+
+def arrayconvert(unit1, unit2):
+    def convert(x):
+        return unit1.convert(x, unit2)
+
+    return np.vectorize(convert)

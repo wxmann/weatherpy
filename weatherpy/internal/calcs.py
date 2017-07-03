@@ -51,10 +51,10 @@ def relative_percentage(val, minval, maxval):
 
 
 def mask_outside_extent(extent, crs, x, y):
-    lower_left = crs.transform_point(extent[0], extent[2], ccrs.PlateCarree())
-    upper_right = crs.transform_point(extent[1], extent[3], ccrs.PlateCarree())
-    upper_left = crs.transform_point(extent[0], extent[3], ccrs.PlateCarree())
-    lower_right = crs.transform_point(extent[1], extent[2], ccrs.PlateCarree())
+    lower_left = crs.transform_point(extent.west, extent.south, ccrs.PlateCarree())
+    upper_right = crs.transform_point(extent.east, extent.north, ccrs.PlateCarree())
+    upper_left = crs.transform_point(extent.west, extent.north, ccrs.PlateCarree())
+    lower_right = crs.transform_point(extent.east, extent.south, ccrs.PlateCarree())
 
     x0 = min(lower_left[0], upper_left[0])
     x1 = max(upper_right[0], lower_right[0])

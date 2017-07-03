@@ -1,39 +1,43 @@
+from collections import namedtuple
+
 from weatherpy.internal import calcs
 
-conus = (-127.5, -65.5, 20.5, 52)
+geobbox = namedtuple('geobbox', 'west east south north')
 
-us_southeast = (-98, -74, 23, 40)
+conus = geobbox(-127.5, -65.5, 20.5, 52)
 
-us_southctrl = (-110, -88, 24.5, 41)
+us_southeast = geobbox(-98, -74, 23, 40)
 
-us_southwest = (-128, -103, 28.5, 42.5)
+us_southctrl = geobbox(-110, -88, 24.5, 41)
 
-us_northwest = (-130, -105, 39, 52)
+us_southwest = geobbox(-128, -103, 28.5, 42.5)
 
-us_northctrl = (-110, -85.5, 38, 52)
+us_northwest = geobbox(-130, -105, 39, 52)
 
-us_northeast = (-90, -65, 36, 52)
+us_northctrl = geobbox(-110, -85.5, 38, 52)
 
-southern_plains = (-107.5, -91, 27.5, 39.5)
+us_northeast = geobbox(-90, -65, 36, 52)
 
-central_plains = (-107.5, -91, 33.5, 44)
+southern_plains = geobbox(-107.5, -91, 27.5, 39.5)
 
-northern_plains = (-108.5, -90, 41, 51.5)
+central_plains = geobbox(-107.5, -91, 33.5, 44)
 
-dixie = (-97, -79, 28, 37.5)
+northern_plains = geobbox(-108.5, -90, 41, 51.5)
 
-midwest = (-98, -79, 36, 50)
+dixie = geobbox(-97, -79, 28, 37.5)
 
-gulf_of_mexico = (-100, -79, 17.5, 33)
+midwest = geobbox(-98, -79, 36, 50)
 
-florida = (-90, -77.5, 23, 32.5)
+gulf_of_mexico = geobbox(-100, -79, 17.5, 33)
 
-carolinas = (-86, -73, 31, 38)
+florida = geobbox(-90, -77.5, 23, 32.5)
 
-northeast_megalopolis = (-80.5, -68, 37, 44.5)
+carolinas = geobbox(-86, -73, 31, 38)
 
-california = (-127.5, -112, 30, 43)
+northeast_megalopolis = geobbox(-80.5, -68, 37, 44.5)
+
+california = geobbox(-127.5, -112, 30, 43)
 
 
 def zoom(latlon, km):
-    return calcs.bbox_from_ctr_and_range(latlon, km)
+    return geobbox(*calcs.bbox_from_ctr_and_range(latlon, km))
