@@ -3,22 +3,22 @@ from datetime import datetime
 
 from matplotlib import patheffects
 
-from weatherpy import goessat
-from weatherpy import plotextras
 from weatherpy import maps
+from weatherpy import plotextras
 from weatherpy.maps import projections
+from weatherpy.satellite import goeslegacy
 from weatherpy.thredds import timestamp_from_dataset
 
 
 def save_wv(saveloc):
     sattype = 'vis'
-    req = goessat.GoesDataRequest(sattype, 'EAST-CONUS_1km')
+    req = goeslegacy.GoesDataRequest(sattype, 'EAST-CONUS_1km')
     text_color = 'black'
 
     init_time = datetime(2017, 4, 2, 23, 15)
     end_time = datetime(2017, 4, 3, 0, 45)
     for sat in (sat for sat in req[init_time: end_time] if timestamp_from_dataset(sat).minute % 15 == 0):
-        with goessat.goesopen(sat) as plotter:
+        with goeslegacy.goesopen(sat) as plotter:
             with plotextras.figcontext(figsize=(16, 16)) as fig:
                 mapper = maps.LargeScaleMap(projections.goes_east_nearside())
                 # mapper.extent = (-105, -65, 20, 53)

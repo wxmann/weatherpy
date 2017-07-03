@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 from unittest import TestCase
 from unittest.mock import patch, MagicMock
 
-from weatherpy.goessat import GoesDataRequest
+from weatherpy.satellite.goeslegacy import GoesDataRequest
 from weatherpy.thredds import DatasetAccessException, timestamp_from_dataset
 
 
@@ -12,7 +12,7 @@ class TestGoesDataRequest(TestCase):
     def setUp(self):
         self.sattype = 'WV'
         self.sector = 'EAST-CONUS_4km'
-        self.patcher = patch('weatherpy.goessat.TDSCatalog')
+        self.patcher = patch('weatherpy.satellite.goeslegacy.TDSCatalog')
         self.mock_catalog = self.patcher.start()
 
         self.mock_datasets = OrderedDict()
@@ -78,7 +78,7 @@ class TestGoesDataRequest(TestCase):
         with self.assertRaises(StopIteration):
             next(ds)
 
-    @patch('weatherpy.goessat.current_time_utc', return_value=datetime(2016, 1, 28, 23, 59))
+    @patch('weatherpy.satellite.goeslegacy.current_time_utc', return_value=datetime(2016, 1, 28, 23, 59))
     def test_should_be_able_to_get_dataset_by_timestamp_slice_to_end(self, current_time_patch):
         init_time = datetime(2016, 1, 28, 6, 30)
         ds = self.req[init_time:]
