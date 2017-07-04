@@ -7,7 +7,7 @@ from siphon.catalog import TDSCatalog
 from weatherpy import ctables, maps, units
 from weatherpy.internal import mask_outside_extent, logger
 from weatherpy.satellite.shared import ThreddsSatelliteSelection
-from weatherpy.thredds import ThreddsDatasetPlotter, dap_plotter
+from weatherpy.thredds import DatasetContextManager, dap_plotter
 from weatherpy.units import Scale, UnitsException, arrayconvert
 
 CATALOG_BASE_URL = 'http://thredds-jumbo.unidata.ucar.edu/thredds/catalog/satellite/goes16/GOES16/'
@@ -81,7 +81,7 @@ class Goes16Selection(ThreddsSatelliteSelection):
         return datetime.strptime(matched_str, '%Y%m%d_%H%M%S')
 
 
-class Goes16Plotter(ThreddsDatasetPlotter):
+class Goes16Plotter(DatasetContextManager):
     def __init__(self, dataset):
         super().__init__(dataset)
 

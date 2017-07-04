@@ -1,16 +1,15 @@
 import re
-from contextlib import contextmanager
 from datetime import datetime, timedelta
 
 import netCDF4 as nc
 import numpy as np
 from siphon.catalog import TDSCatalog
 
-from weatherpy import ctables
+from weatherpy import ctables, units
 from weatherpy import maps
 from weatherpy.internal import logger
 from weatherpy.satellite.shared import ThreddsSatelliteSelection
-from weatherpy.thredds import dap_plotter
+from weatherpy.thredds import dap_plotter, DatasetContextManager
 
 
 class GoesLegacySelection(ThreddsSatelliteSelection):
@@ -66,30 +65,16 @@ class GoesLegacySelection(ThreddsSatelliteSelection):
         return datetime.strptime(matched_str, '%Y%m%d_%H%M')
 
 
-@contextmanager
-def goesopen(url):
-    dataset = nc.Dataset(url)
-    try:
-        yield GoesLegacyPlotter(dataset)
-    finally:
-        dataset.close()
-
-
-class GoesLegacyPlotter(object):
+class GoesLegacyPlotter(DatasetContextManager):
     _KM_TO_M_MULTIPLIER = 1000
 
     def __init__(self, dataset):
-        self.dataset = dataset
+        super().__init__(dataset)
+
         self._sattype = self.dataset.keywords_vocabulary
-        self._x = self.dataset.variables['x'][:]
-        self._y = self.dataset.variables['y'][:]
 
         self._timestamp = self._get_timestamp()
-        self._pixels = self._get_pixels()
         self._geog = self.dataset.variables['LambertConformal']
-
-        self._lim = tuple(val * GoesLegacyPlotter._KM_TO_M_MULTIPLIER
-                          for val in [min(self._x), max(self._x), min(self._y), max(self._y)])
 
         self._crs = maps.projections.lambertconformal(lat0=self._geog.latitude_of_projection_origin,
                                                       lon0=self._geog.longitude_of_central_meridian,
@@ -141,7 +126,7 @@ class GoesLegacyPlotter(object):
 
     def default_ctable(self):
         if self._sattype == 'VIS':
-            return ctables.vis.default
+            return ctables.vis.optimized
         elif self._sattype == 'IR':
             return ctables.ir.rainbow
         elif self._sattype == 'WV':
@@ -149,14 +134,25 @@ class GoesLegacyPlotter(object):
         else:
             return None
 
-    def make_plot(self, mapper=None, colortable=None):
+    def make_plot(self, mapper=None, colortable=None, extent=None):
         if colortable is None:
             colortable = self.default_ctable()
+
         if mapper is None:
             mapper = self.default_map()
+            if extent is not None:
+                mapper.extent = extent
+
+        if not mapper.initialized():
             mapper.initialize_drawing()
 
-        mapper.ax.imshow(self._pixels, extent=self._lim, origin='upper',
+        x = self.dataset.variables['x'][:]
+        y = self.dataset.variables['y'][:]
+
+        lim = tuple(units.METER.convert(val, units.KILOMETER)
+                    for val in (x.min(), x.max(), y.min(), y.max()))
+        pix = self._get_pixels()
+        mapper.ax.imshow(pix, extent=lim, origin='upper',
                          transform=self._crs,
                          cmap=colortable.cmap, norm=colortable.norm)
         return mapper, colortable

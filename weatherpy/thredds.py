@@ -8,7 +8,7 @@ class DatasetAccessException(Exception):
     pass
 
 
-class ThreddsDatasetPlotter(object):
+class DatasetContextManager(object):
     def __init__(self, dataset):
         self.dataset = dataset
 
