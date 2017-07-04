@@ -2,12 +2,12 @@ import re
 from datetime import datetime, timedelta, date
 
 import cartopy.crs as ccrs
-import requests
 from siphon.catalog import TDSCatalog
 
 from weatherpy import ctables, maps, units
-from weatherpy.internal import pyhelpers, mask_outside_extent, logger
-from weatherpy.thredds import ThreddsDatasetPlotter, dap_plotter, DatasetAccessException
+from weatherpy.internal import mask_outside_extent, logger
+from weatherpy.satellite.shared import ThreddsSatelliteSelection
+from weatherpy.thredds import ThreddsDatasetPlotter, dap_plotter
 from weatherpy.units import Scale, UnitsException, arrayconvert
 
 CATALOG_BASE_URL = 'http://thredds-jumbo.unidata.ucar.edu/thredds/catalog/satellite/goes16/GOES16/'
@@ -25,7 +25,8 @@ def sector2(channel):
     return Goes16Selection('Mesoscale-2', channel)
 
 
-class Goes16Selection(object):
+class Goes16Selection(ThreddsSatelliteSelection):
+
     @staticmethod
     def _default_action(ds):
         return dap_plotter(ds, Goes16Plotter)
@@ -40,14 +41,7 @@ class Goes16Selection(object):
         if action is None:
             action = Goes16Selection._default_action
 
-        right_now = pyhelpers.current_time_utc()
-        datasets = self._datasets_between(right_now - within, right_now, 'desc')
-
-        try:
-            _, ds = next(datasets)
-            return action(ds)
-        except StopIteration:
-            raise DatasetAccessException("No datasets found within {} of right now.".format(within))
+        return self._latest_impl(within, action)
 
     def around(self, when, within=None, action=None):
         if within is None:
@@ -55,57 +49,19 @@ class Goes16Selection(object):
         if action is None:
             action = Goes16Selection._default_action
 
-        dataset_by_deltas = {abs((ts - when).total_seconds()): ds for ts, ds in
-                             self._datasets_between(when - within, when + within, 'desc')}
-        if not dataset_by_deltas:
-            raise DatasetAccessException("No datasets found around: {} +/- {}".format(when, within))
-        smallest_delta = min(dataset_by_deltas.keys())
-        return action(dataset_by_deltas[smallest_delta])
+        return self._around_impl(when, within, action)
 
     def between(self, t1, t2, action=None, sort='asc'):
-        if t1 >= t2:
-            raise ValueError("t1 must be less than than t2")
         if action is None:
             action = Goes16Selection._default_action
-        if sort not in ('asc', 'desc'):
-            raise ValueError("Sort must be `asc` or `desc`")
 
-        return (action(ds) for _, ds in self._datasets_between(t1, t2, sort))
+        return self._between_impl(t1, t2, action, sort)
 
     def since(self, when, action=None, sort='asc'):
-        return self.between(when, pyhelpers.current_time_utc(), action, sort)
+        if action is None:
+            action = Goes16Selection._default_action
 
-    def _datasets_between(self, t1, t2, sort):
-        date1 = t1.date()
-        date2 = t2.date()
-
-        if sort == 'asc':
-            date_on = date1
-            while date_on <= date2:
-                for ts, ds in self._datasets_on(date_on, sort):
-                    if t1 <= ts < t2:
-                        yield ts, ds
-                date_on += timedelta(days=1)
-        elif sort == 'desc':
-            date_on = date2
-            while date_on >= date1:
-                for ts, ds in self._datasets_on(date_on, sort):
-                    if t1 <= ts < t2:
-                        yield ts, ds
-                date_on -= timedelta(days=1)
-        else:
-            raise ValueError("Sort must be `asc` or `desc`")
-
-    def _datasets_on(self, query_date, sort):
-        try:
-            catalog = self._get_catalog(query_date)
-        except requests.exceptions.HTTPError:
-            # Catalog does not exist, thus datasets are empty
-            return ()
-        reverse = sort == 'desc'
-        dataset_keys = sorted(catalog.datasets.keys(), reverse=reverse)
-        for ds_key in dataset_keys:
-            yield timestamp_from_dataset(ds_key), catalog.datasets[ds_key]
+        return self._since_impl(when, action, sort)
 
     def _get_catalog(self, query_date):
         # temp workaround since Unidata just changed their catalog structure
@@ -117,13 +73,12 @@ class Goes16Selection(object):
                             channel='Channel' + str(self.channel).zfill(2))
         return TDSCatalog(CATALOG_BASE_URL + path)
 
-
-def timestamp_from_dataset(dataset_name):
-    match = re.search(r'\d{8}_\d{6}', dataset_name)
-    matched_str = match.group(0)
-    if not matched_str:
-        raise ValueError("Invalid dataset name: " + str(dataset_name))
-    return datetime.strptime(matched_str, '%Y%m%d_%H%M%S')
+    def _timestamp_from_dataset(self, dataset_name):
+        match = re.search(r'\d{8}_\d{6}', dataset_name)
+        matched_str = match.group(0)
+        if not matched_str:
+            raise ValueError("Invalid dataset name: " + str(dataset_name))
+        return datetime.strptime(matched_str, '%Y%m%d_%H%M%S')
 
 
 class Goes16Plotter(ThreddsDatasetPlotter):

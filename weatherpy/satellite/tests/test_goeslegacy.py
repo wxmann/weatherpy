@@ -1,106 +1,94 @@
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from unittest import TestCase
-from unittest.mock import patch, MagicMock
+from unittest.mock import patch, MagicMock, call
 
-from weatherpy.satellite.goeslegacy import GoesDataRequest
-from weatherpy.thredds import DatasetAccessException, timestamp_from_dataset
+import requests
+
+from weatherpy.satellite.goeslegacy import GoesLegacySelection
+from weatherpy.thredds import DatasetAccessException
 
 
-class TestGoesDataRequest(TestCase):
+mock_catalog = MagicMock()
+mock_catalog.datasets = OrderedDict()
+for k in ('EAST-CONUS_4km_WV_20160128_0530.gini', 'EAST-CONUS_4km_WV_20160128_0630.gini',
+          'EAST-CONUS_4km_WV_20160128_0715.gini', 'EAST-CONUS_4km_WV_20160128_0745.gini'):
+    mock_catalog.datasets[k] = k
+
+
+def catalog_subs(url):
+    if url == 'http://thredds.ucar.edu/thredds/catalog/satellite/WV/EAST-CONUS_4km/20160128/catalog.xml':
+        return mock_catalog
+    else:
+        raise requests.exceptions.HTTPError("Dataset is out of range: " + url)
+
+
+class TestGoesLegacySelection(TestCase):
 
     def setUp(self):
         self.sattype = 'WV'
         self.sector = 'EAST-CONUS_4km'
-        self.patcher = patch('weatherpy.satellite.goeslegacy.TDSCatalog')
-        self.mock_catalog = self.patcher.start()
+        self.catalog_patcher = patch('weatherpy.satellite.goeslegacy.TDSCatalog', side_effect=catalog_subs)
+        self.current_date_patcher = patch('weatherpy.internal.pyhelpers.current_time_utc')
+        self.mock_catalog = self.catalog_patcher.start()
+        self.current_date = self.current_date_patcher.start()
 
-        self.mock_datasets = OrderedDict()
-        self.mock_datasets['EAST-CONUS_4km_WV_20160128_0530.gini'] = MagicMock()
-        self.mock_datasets['EAST-CONUS_4km_WV_20160128_0630.gini'] = MagicMock()
-        self.mock_datasets['EAST-CONUS_4km_WV_20160128_0715.gini'] = MagicMock()
-        self.mock_datasets['EAST-CONUS_4km_WV_20160128_0745.gini'] = MagicMock()
-
-        self.mock_catalog.return_value.datasets = self.mock_datasets
-        for dataset_name, dataset in self.mock_datasets.items():
-            dataset.access_urls = {
-                'OPENDAP': dataset_name + '-OPENDAP'
-            }
-
-        self.req = GoesDataRequest(self.sattype, self.sector)
+        self.sel = GoesLegacySelection(self.sattype, self.sector)
+        self.action = MagicMock()
+        self._consumer = list
 
     def tearDown(self):
-        self.patcher.stop()
+        self.catalog_patcher.stop()
+        self.current_date_patcher.stop()
 
-    def test_should_be_able_to_get_dataset_by_index(self):
-        ds_pos = self.req[2]
-        self.assertEqual(ds_pos, 'EAST-CONUS_4km_WV_20160128_0715.gini-OPENDAP')
+    def test_should_be_able_to_get_latest_dataset_default_radius(self):
+        self.current_date.return_value = datetime(2016, 1, 28, 7, 50)
+        self.sel.latest(action=self.action)
 
-        ds_neg = self.req[-1]
-        self.assertEqual(ds_neg, 'EAST-CONUS_4km_WV_20160128_0745.gini-OPENDAP')
+        self.action.assert_called_with('EAST-CONUS_4km_WV_20160128_0745.gini')
 
-    def test_should_be_able_to_get_dataset_by_index_slice(self):
-        ds_pos = self.req[1: 3]
-        self.assertEqual(next(ds_pos), 'EAST-CONUS_4km_WV_20160128_0630.gini-OPENDAP')
-        self.assertEqual(next(ds_pos), 'EAST-CONUS_4km_WV_20160128_0715.gini-OPENDAP')
-        with self.assertRaises(StopIteration):
-            next(ds_pos)
-
-    def test_should_be_able_to_get_datset_by_index_slice_to_end(self):
-        ds_pos = self.req[-2:]
-        self.assertEqual(next(ds_pos), 'EAST-CONUS_4km_WV_20160128_0715.gini-OPENDAP')
-        self.assertEqual(next(ds_pos), 'EAST-CONUS_4km_WV_20160128_0745.gini-OPENDAP')
-        with self.assertRaises(StopIteration):
-            next(ds_pos)
-
-    def test_should_be_able_to_get_dataset_by_full_slice(self):
-        ds_pos = self.req[:]
-        self.assertEqual(next(ds_pos), 'EAST-CONUS_4km_WV_20160128_0530.gini-OPENDAP')
-        self.assertEqual(next(ds_pos), 'EAST-CONUS_4km_WV_20160128_0630.gini-OPENDAP')
-        self.assertEqual(next(ds_pos), 'EAST-CONUS_4km_WV_20160128_0715.gini-OPENDAP')
-        self.assertEqual(next(ds_pos), 'EAST-CONUS_4km_WV_20160128_0745.gini-OPENDAP')
-        with self.assertRaises(StopIteration):
-            next(ds_pos)
-
-    def test_should_raise_error_if_index_out_of_bounds(self):
+    def test_fail_to_find_latest_dataset_within_custom_radius(self):
         with self.assertRaises(DatasetAccessException):
-            self.req[-100]
+            self.current_date.return_value = datetime(2016, 1, 28, 7, 50)
+            self.sel.latest(within=timedelta(minutes=1), action=self.action)
 
-    def test_should_be_able_to_get_dataset_by_timestamp(self):
-        ds = self.req[datetime(2016, 1, 28, 6, 30)]
-        self.assertEqual(ds, 'EAST-CONUS_4km_WV_20160128_0630.gini-OPENDAP')
+    def test_find_dataset_around_time_default_radius(self):
+        self.sel.around(datetime(2016, 1, 28, 6, 45), action=self.action)
 
-    def test_should_be_able_to_get_dataset_by_timestamp_slice(self):
-        init_time = datetime(2016, 1, 28, 6, 30)
-        ds = self.req[init_time: init_time + timedelta(hours=1)]
-        self.assertEqual(next(ds), 'EAST-CONUS_4km_WV_20160128_0630.gini-OPENDAP')
-        self.assertEqual(next(ds), 'EAST-CONUS_4km_WV_20160128_0715.gini-OPENDAP')
-        with self.assertRaises(StopIteration):
-            next(ds)
+        self.action.assert_called_with('EAST-CONUS_4km_WV_20160128_0630.gini')
 
-    @patch('weatherpy.satellite.goeslegacy.current_time_utc', return_value=datetime(2016, 1, 28, 23, 59))
-    def test_should_be_able_to_get_dataset_by_timestamp_slice_to_end(self, current_time_patch):
-        init_time = datetime(2016, 1, 28, 6, 30)
-        ds = self.req[init_time:]
-        self.assertEqual(next(ds), 'EAST-CONUS_4km_WV_20160128_0630.gini-OPENDAP')
-        self.assertEqual(next(ds), 'EAST-CONUS_4km_WV_20160128_0715.gini-OPENDAP')
-        self.assertEqual(next(ds), 'EAST-CONUS_4km_WV_20160128_0745.gini-OPENDAP')
-        with self.assertRaises(StopIteration):
-            next(ds)
-            
-    def test_should_raise_exception_if_timestamp_slice_from_start(self):
-        with self.assertRaises(ValueError):
-            self.req[: datetime(2016, 1, 31, 0, 0)]
+    def test_find_dataset_around_time_custom_radius(self):
+        self.sel.around(datetime(2016, 1, 28, 4, 35), within=timedelta(hours=1), action=self.action)
 
-    def test_should_raise_exception_if_not_use_int_or_timestamp_to_get_dataset(self):
-        with self.assertRaises(DatasetAccessException):
-            self.req[1.5]
+        self.action.assert_called_with('EAST-CONUS_4km_WV_20160128_0530.gini')
 
-    def test_should_raise_exception_if_mix_int_and_timestamp_to_get_dataset(self):
-        with self.assertRaises(ValueError):
-            self.req[5: datetime(2017, 1, 31, 0, 0)]
+    def test_find_datasets_between_and_exclude_higher_bound(self):
+        ds_iter = self.sel.between(datetime(2016, 1, 27, 23, 0),
+                                   datetime(2016, 1, 28, 7, 15), action=self.action)
 
-    def test_should_get_timestamp_from_dataset_name(self):
-        ds_name = 'EAST-CONUS_4km_IR_20170201_0645.gini'
-        ts = timestamp_from_dataset(ds_name)
-        self.assertEqual(ts, datetime(2017, 2, 1, 6, 45))
+        self._consumer(ds_iter)
+        self.action.assert_has_calls([
+            call('EAST-CONUS_4km_WV_20160128_0530.gini'),
+            call('EAST-CONUS_4km_WV_20160128_0630.gini')
+        ])
+
+    def test_find_datasets_between_and_include_lower_bound(self):
+        ds_iter = self.sel.between(datetime(2016, 1, 28, 7, 15),
+                                   datetime(2016, 1, 30, 7, 15), action=self.action)
+
+        self._consumer(ds_iter)
+        self.action.assert_has_calls([
+            call('EAST-CONUS_4km_WV_20160128_0715.gini'),
+            call('EAST-CONUS_4km_WV_20160128_0745.gini')
+        ])
+
+    def test_find_datasets_since(self):
+        self.current_date.return_value = datetime(2016, 1, 28, 7, 50)
+
+        ds_iter = self.sel.since(datetime(2016, 1, 28, 7, 0), action=self.action)
+        self._consumer(ds_iter)
+
+        self.action.assert_has_calls([
+            call('EAST-CONUS_4km_WV_20160128_0715.gini'),
+            call('EAST-CONUS_4km_WV_20160128_0745.gini')
+        ])
