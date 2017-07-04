@@ -162,8 +162,8 @@ class Goes16Plotter(DatasetContextManager):
                 if not scale:
                     if self.sattype != 'WV' or data_units != units.KELVIN:
                         raise ValueError("Must provide explicit scale for this dataset.")
-                    lobound = units.CELSIUS.convert(-130, units.KELVIN)
-                    hibound = units.CELSIUS.convert(10, units.KELVIN)
+                    lobound = units.KELVIN.convert(-130, units.CELSIUS)
+                    hibound = units.KELVIN.convert(10, units.CELSIUS)
                     scale = Scale(lobound, hibound)
                 elif isinstance(scale, tuple):
                     scale = Scale(*scale)
