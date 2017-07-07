@@ -12,6 +12,29 @@ from weatherpy.satellite.shared import ThreddsSatelliteSelection
 from weatherpy.thredds import dap_plotter, DatasetContextManager
 
 
+def conus_west(sattype):
+    if sattype.upper() == 'VIS':
+        sector = 'WEST-CONUS_1km'
+    elif sattype.upper() in ('IR' ,'WV'):
+        sector = 'WEST-CONUS_4km'
+    else:
+        raise ValueError("Sattype: {} not supported".format(sattype))
+
+    return GoesLegacySelection(sattype, sector)
+
+
+def conus_east(sattype):
+    if sattype.upper() == 'VIS':
+        sector = 'EAST-CONUS_1km'
+    elif sattype.upper() in ('IR' ,'WV'):
+        sector = 'EAST-CONUS_4km'
+    else:
+        raise ValueError("Sattype: {} not supported".format(sattype))
+
+    return GoesLegacySelection(sattype, sector)
+
+
+
 class GoesLegacySelection(ThreddsSatelliteSelection):
     @staticmethod
     def _default_action(ds):
@@ -140,8 +163,9 @@ class GoesLegacyPlotter(DatasetContextManager):
 
         if mapper is None:
             mapper = self.default_map()
-            if extent is not None:
-                mapper.extent = extent
+
+        if extent is not None:
+            mapper.extent = extent
 
         if not mapper.initialized():
             mapper.initialize_drawing()

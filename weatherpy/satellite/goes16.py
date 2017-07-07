@@ -134,8 +134,9 @@ class Goes16Plotter(DatasetContextManager):
 
         if mapper is None:
             mapper = self.default_map()
-            if extent is not None:
-                mapper.extent = extent
+
+        if extent is not None:
+            mapper.extent = extent
 
         if not mapper.initialized():
             mapper.initialize_drawing()

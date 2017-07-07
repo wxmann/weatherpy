@@ -9,7 +9,7 @@ from weatherpy.satellite import goeslegacy
 
 
 def latest_east_coast_wv():
-    sel = goeslegacy.GoesLegacySelection('WV', 'EAST-CONUS_4km')
+    sel = goeslegacy.conus_east('WV')
     text_color = 'black'
 
     mapper = LargeScaleMap(projections.goes_east_nearside())
