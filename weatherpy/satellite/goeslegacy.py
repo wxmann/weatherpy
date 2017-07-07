@@ -34,7 +34,6 @@ def conus_east(sattype):
     return GoesLegacySelection(sattype, sector)
 
 
-
 class GoesLegacySelection(ThreddsSatelliteSelection):
     @staticmethod
     def _default_action(ds):
@@ -89,7 +88,6 @@ class GoesLegacySelection(ThreddsSatelliteSelection):
 
 
 class GoesLegacyPlotter(DatasetContextManager):
-    _KM_TO_M_MULTIPLIER = 1000
 
     def __init__(self, dataset):
         super().__init__(dataset)
@@ -103,7 +101,7 @@ class GoesLegacyPlotter(DatasetContextManager):
                                                       lon0=self._geog.longitude_of_central_meridian,
                                                       stdlat1=self._geog.standard_parallel,
                                                       r_earth=self._geog.earth_radius)
-        logger.info("[GOES SAT] Finish processing satellite data")
+        logger.info("[GOES SAT] Finish reading satellite metadata")
 
     def _get_timestamp(self):
         timevar = self.dataset.variables['time']
