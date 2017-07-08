@@ -94,7 +94,8 @@ class Goes16Plotter(DatasetContextManager):
         proj = self._scmi.grid_mapping
         geog = self.dataset.variables[proj]
         if proj == 'lambert_projection':
-            globe = ccrs.Globe(semimajor_axis=geog.semi_major,
+            globe = ccrs.Globe(ellipse='sphere',
+                               semimajor_axis=geog.semi_major,
                                semiminor_axis=geog.semi_minor)
             self._crs = ccrs.LambertConformal(central_latitude=geog.latitude_of_projection_origin,
                                               central_longitude=geog.longitude_of_central_meridian,
