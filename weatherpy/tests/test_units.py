@@ -32,6 +32,9 @@ class Test_Units(unittest.TestCase):
     def test_should_get_km_unit(self):
         self._assert_can_get_unit(('km', 'kilometer'), units.KILOMETER)
 
+    def test_should_get_m_unit(self):
+        self._assert_can_get_unit(('m', 'meter'), units.METER)
+
     def test_should_get_deg_unit(self):
         self._assert_can_get_unit(('deg', '°'), units.DEGREE)
 
@@ -97,6 +100,18 @@ class Test_UnitsConversion(unittest.TestCase):
 
     def test_convert_km_to_mi(self):
         self.assertAlmostEqual(units.MILE.convert(24.1402, units.KILOMETER), 15, 3)
+
+    def test_convert_km_to_m(self):
+        self.assertAlmostEqual(units.METER.convert(1, units.KILOMETER), 1000)
+
+    def test_convert_m_to_km(self):
+        self.assertAlmostEqual(units.KILOMETER.convert(1000, units.METER), 1)
+
+    def test_convert_mi_to_m(self):
+        self.assertAlmostEqual(units.METER.convert(1, units.MILE), 1609.34, 2)
+
+    def test_convert_m_to_mi(self):
+        self.assertAlmostEqual(units.MILE.convert(1609.34, units.METER), 1, 2)
 
 
 class Test_Scale(unittest.TestCase):

@@ -10,27 +10,27 @@ from weatherpy.satellite import goes16
 
 def save_to(saveloc):
     channel = 2
-    init_time = datetime(2017, 6, 28, 18, 0)
-    # end_time = datetime(2017, 6, 28, 23, 30)
+    init_time = datetime(2017, 6, 12, 21, 0)
+    end_time = datetime(2017, 6, 12, 21, 30)
 
-    for plotter in goes16.sector1(channel).since(init_time):
+    for plotter in goes16.conus(channel).between(init_time, end_time):
         with plotter:
             if plotter.timestamp.minute % 5 == 0:
                 with plotextras.figcontext(figsize=(14, 14)) as fig:
                     mapper = maps.DetailedUSMap(plotter.default_map().crs)
-                    mapper.extent = extents.zoom((41.6, -93.9), 350)
+                    mapper.extent = extents.zoom((41.87, -103.67), 350)
                     _set_map_bdy_props(mapper)
                     mapper.initialize_drawing()
                     plotter.make_plot(mapper)
                     mapper.draw_default()
 
-                    title_text = 'GOES-16 {} {}\nCreated by Jim Tang (@wxmann)\n** prelim, non-operational data'.format(
+                    title_text = 'GOES-16 {} {}\n** prelim, non-operational data'.format(
                         plotter.sattype, plotter.timestamp.strftime('%Y %b %d %H:%M UTC'))
                     plotextras.bottom_right_stamp(title_text, mapper.ax, fontsize=16, color='gray', weight='bold',
                                                   path_effects=[patheffects.withStroke(linewidth=1.5,
                                                                                        foreground="black")])
                     fileloc = os.path.sep.join((saveloc,
-                                                'IA_{}_{}.png'.format(plotter.sattype,
+                                                'CO-WY-NE_{}_{}.png'.format(plotter.sattype,
                                                                       plotter.timestamp.strftime('%Y%m%d_%H%M')))
                                                )
                     plotextras.save_image_no_border(fig, fileloc)

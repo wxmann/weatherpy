@@ -141,6 +141,7 @@ METER_PER_SECOND = Unit('Meter per Second', 'Speed', ('m/s', 'ms-1', 'mps', 'met
                         _units_repo)
 MILE = Unit('Mile', 'Length', ('mi',), _units_repo)
 KILOMETER = Unit('Kilometer', 'Length', ('km',), _units_repo)
+METER = Unit('Meter', 'Length', ('m',), _units_repo)
 DEGREE = Unit('Degree', 'Angle', ('deg', '°'), _units_repo)
 RADIAN = Unit('Radian', 'Angle', ('rad',), _units_repo)
 
@@ -150,12 +151,16 @@ _units_repo.register_conversion(METER_PER_SECOND, KNOT, lambda ms: ms * 1.944)
 _units_repo.register_conversion(KNOT, METER_PER_SECOND, lambda kt: kt / 1.944)
 _units_repo.register_conversion(MILE, KILOMETER, lambda mi: mi * 1.60934)
 _units_repo.register_conversion(KILOMETER, MILE, lambda km: km / 1.60934)
+_units_repo.register_conversion(KILOMETER, METER, lambda km: km * 1000)
+_units_repo.register_conversion(METER, KILOMETER, lambda m: m / 1000)
+_units_repo.register_conversion(METER, MILE, lambda m: m * 0.000621371)
+_units_repo.register_conversion(MILE, METER, lambda mi: mi / 0.000621371)
 _units_repo.register_conversion(DEGREE, RADIAN, math.radians)
 _units_repo.register_conversion(RADIAN, DEGREE, math.degrees)
 
 
 def arrayconvert(unit1, unit2):
     def convert(x):
-        return unit1.convert(x, unit2)
+        return unit2.convert(x, unit1)
 
     return np.vectorize(convert)
