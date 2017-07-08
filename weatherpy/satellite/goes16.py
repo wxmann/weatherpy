@@ -145,13 +145,23 @@ class Goes16Plotter(DatasetContextManager):
         x = self.dataset.variables['x'][:]
         y = self.dataset.variables['y'][:]
 
-        apply_extent = mapper.extent is not None and strict
+        plot_limited = mapper.extent is not None and strict
 
-        if apply_extent:
+        if plot_limited:
             xmask, ymask = mask_outside_extent(mapper.extent, self._crs, x, y)
-            x = x[xmask]
-            y = y[ymask]
-            plotdata = self._scmi[ymask, xmask]
+            xmasked = x[xmask]
+            ymasked = y[ymask]
+
+            if not xmasked.size or not ymasked.size:
+                # we are out of bounds of the satellite data, fake an empty plot area
+                # as we can't plot-limit with an empty coordinate array
+                import numpy as np
+                plotdata = np.empty(self._scmi.shape)
+                plot_limited = False
+            else:
+                x = xmasked
+                y = ymasked
+                plotdata = self._scmi[ymask, xmask]
         else:
             plotdata = self._scmi[:]
 
@@ -159,7 +169,7 @@ class Goes16Plotter(DatasetContextManager):
             data_units = units.get(self._scmi.units)
             ctable_units = colortable.unit
 
-            # workaround: for WV colortables, have to do some magic
+            # workaround: for legacy WV colortables expressed in brightness units, have to do some magic
             if isinstance(ctable_units, Scale) and not isinstance(data_units, Scale):
                 if not scale:
                     if self.sattype != 'WV' or data_units != units.KELVIN:
@@ -179,7 +189,7 @@ class Goes16Plotter(DatasetContextManager):
 
         logger.info("[GOES SAT] Finish processing satellite pixel data")
 
-        if apply_extent:
+        if plot_limited:
             mapper.ax.pcolormesh(x, y, plotdata,
                                  cmap=colortable.cmap, norm=colortable.norm)
         else:
