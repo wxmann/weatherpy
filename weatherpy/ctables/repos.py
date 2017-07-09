@@ -59,6 +59,7 @@ ir.navy = 'IR_navy.pal'
 ir.rainbow = 'IR_rainbow.pal'
 ir.enh4 = 'IR4.pal'
 ir.cimms = 'IR_cimms2.pal'
+ir.alpha = 'IR_alpha.pal'
 
 vis = Repo()
 vis.default = 'Visible-depth.pal'

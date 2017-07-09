@@ -149,7 +149,7 @@ class GoesLegacyPlotter(DatasetContextManager):
         if self._sattype == 'VIS':
             return ctables.vis.optimized
         elif self._sattype == 'IR':
-            return ctables.ir.rainbow
+            return ctables.ir.alpha
         elif self._sattype == 'WV':
             return ctables.wv.accuwx
         else:

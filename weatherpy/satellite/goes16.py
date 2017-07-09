@@ -123,7 +123,7 @@ class Goes16Plotter(DatasetContextManager):
         if self.sattype == 'VIS':
             return ctables.vis.optimized
         elif self.sattype in ('NEAR-IR', 'IR'):
-            return ctables.ir.cimms
+            return ctables.ir.alpha
         elif self.sattype == 'WV':
             return ctables.wv.accuwx
         else:

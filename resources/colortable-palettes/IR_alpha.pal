@@ -1,0 +1,20 @@
+;-----------------------------------------------------
+;  Alpha 'NOAA' Infrared Color Table
+;  almanydesigns.com/grx
+
+units: C
+step: 10
+product: IR
+
+
+color: 50 0 0 0 
+color: -19.99 197 197 197
+color: -20 0 190 200
+color: -30 2 7 191
+color: -40 2 215 8
+color: -50 190 201 2 
+color: -60 199 23 0
+color: -70 0 0 0
+color: -80 178 178 178
+color: -90 177 104 212
+color: -110 78 61 158
