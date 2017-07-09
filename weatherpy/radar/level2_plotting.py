@@ -5,14 +5,9 @@ import numpy as np
 from cartopy import crs as ccrs
 from matplotlib import patches
 
-import config
-from weatherpy import ctables
-from weatherpy import maps
-from weatherpy import plotextras
-from weatherpy.internal import bbox_from_coord, current_time_utc, index_time_slice_helper, logger
-from weatherpy.thredds import DatasetAccessException
-from weatherpy import logger, maps, ctables, plotextras
+from weatherpy import maps, ctables, plotextras
 from weatherpy.internal import bbox_from_coord
+from weatherpy.internal import logger
 
 DEFAULT_RANGE_MI = 143.
 
