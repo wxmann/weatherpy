@@ -25,6 +25,10 @@ def sector2(channel):
     return Goes16Selection('Mesoscale-2', channel)
 
 
+def fulldisk(channel):
+    return Goes16Selection('FullDisk', channel)
+
+
 class Goes16Selection(ThreddsSatelliteSelection):
 
     @staticmethod
@@ -37,7 +41,7 @@ class Goes16Selection(ThreddsSatelliteSelection):
 
     def latest(self, within=None, action=None):
         if within is None:
-            within = timedelta(minutes=15)
+            within = timedelta(minutes=40)
         if action is None:
             action = Goes16Selection._default_action
 
@@ -45,7 +49,7 @@ class Goes16Selection(ThreddsSatelliteSelection):
 
     def around(self, when, within=None, action=None):
         if within is None:
-            within = timedelta(minutes=15)
+            within = timedelta(minutes=40)
         if action is None:
             action = Goes16Selection._default_action
 
@@ -92,19 +96,26 @@ class Goes16Plotter(DatasetContextManager):
 
         # geographical projection data
         proj = self._scmi.grid_mapping
-        geog = self.dataset.variables[proj]
+        self._geog = self.dataset.variables[proj]
         if proj == 'lambert_projection':
             globe = ccrs.Globe(ellipse='sphere',
-                               semimajor_axis=geog.semi_major,
-                               semiminor_axis=geog.semi_minor)
-            self._crs = ccrs.LambertConformal(central_latitude=geog.latitude_of_projection_origin,
-                                              central_longitude=geog.longitude_of_central_meridian,
-                                              standard_parallels=[geog.standard_parallel],
-                                              false_easting=geog.false_easting,
-                                              false_northing=geog.false_northing,
+                               semimajor_axis=self._geog.semi_major,
+                               semiminor_axis=self._geog.semi_minor)
+            self._crs = ccrs.LambertConformal(central_latitude=self._geog.latitude_of_projection_origin,
+                                              central_longitude=self._geog.longitude_of_central_meridian,
+                                              standard_parallels=[self._geog.standard_parallel],
+                                              false_easting=self._geog.false_easting,
+                                              false_northing=self._geog.false_northing,
                                               globe=globe)
+        elif proj == 'fixedgrid_projection':
+            globe = ccrs.Globe(semimajor_axis=self._geog.semi_major,
+                               semiminor_axis=self._geog.semi_minor)
+            self._crs = ccrs.NearsidePerspective(central_latitude=self._geog.latitude_of_projection_origin,
+                                                 central_longitude=self._geog.longitude_of_projection_origin,
+                                                 satellite_height=self._geog.perspective_point_height,
+                                                 globe=globe)
         else:
-            raise NotImplementedError("Only Lambert Projection supported at this time")
+            raise NotImplementedError("Only Lambert Projection and Fixed Grid projections supported at this time")
 
         logger.info("[GOES SAT] Finish processing satellite metadata")
 
@@ -114,15 +125,18 @@ class Goes16Plotter(DatasetContextManager):
 
     @property
     def sattype(self):
-        return channel_sattype_map.get(self._channel, 'Unrecognized')
+        try:
+            return channel_sattype_map[self._channel]
+        except KeyError:
+            raise ValueError("Invalid satellite type")
 
     def default_map(self):
         return maps.LargeScaleMap(self._crs)
 
     def default_ctable(self):
-        if self.sattype == 'VIS':
+        if self.sattype in ('NEAR_IR', 'VIS'):
             return ctables.vis.optimized
-        elif self.sattype in ('NEAR-IR', 'IR'):
+        elif self.sattype == 'IR':
             return ctables.ir.alpha
         elif self.sattype == 'WV':
             return ctables.wv.accuwx
@@ -142,8 +156,20 @@ class Goes16Plotter(DatasetContextManager):
         if not mapper.initialized():
             mapper.initialize_drawing()
 
-        x = self.dataset.variables['x'][:]
-        y = self.dataset.variables['y'][:]
+        xvar = self.dataset.variables['x']
+        yvar = self.dataset.variables['y']
+        x = xvar[:]
+        y = yvar[:]
+
+        if 'perspective_point_height' in self._geog.ncattrs():
+            r = self._geog.perspective_point_height
+
+            # for full disk, x and y coordinates are in microradians.
+            # Use the satellite height to convert to meters.
+            if xvar.units == 'microradian':
+                x *= r / 1E6
+            if yvar.units == 'microradian':
+                y *= r / 1E6
 
         plot_limited = mapper.extent is not None and strict
 
