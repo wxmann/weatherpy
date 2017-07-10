@@ -51,6 +51,7 @@ tests/result_images
 __pycache__/
 *.pyc
 .DS_Store
+.cache/
 
 # developer note: where I dump shapefiles before unzipping them, and also old shapefiles that I no longer want to use
 resources/shapefiles/raw/
