@@ -1,3 +1,4 @@
+from collections import namedtuple
 from datetime import timedelta
 
 import requests
@@ -73,3 +74,6 @@ class ThreddsSatelliteSelection(object):
 
     def _timestamp_from_dataset(self, ds_key):
         raise NotImplementedError("Subclasses must implement _timestamp_from_dataset method")
+
+
+satpos = namedtuple('satpos', 'latitude longitude altitude')
