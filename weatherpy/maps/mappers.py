@@ -30,12 +30,15 @@ class MapperBase(object):
 
     @extent.setter
     def extent(self, extent_coord):
-        if extent_coord is None or len(extent_coord) != 4:
-            raise ValueError("Extent must be of form (x0, x1, y0, y1)")
+        logger.info('[MAP] Setting extent to: {}'.format(extent_coord))
 
-        logger.info('[MAP] Setting extent to (lon0, lon1, lat0, lat1): {}'.format(extent_coord))
+        if isinstance(extent_coord, geobbox):
+            self._extent = extent_coord
+        else:
+            if extent_coord is None or len(extent_coord) != 4:
+                raise ValueError("Extent must be of form (x0, x1, y0, y1)")
+            self._extent = geobbox(*extent_coord)
 
-        self._extent = geobbox(*extent_coord)
         self._extent_set = False
         self._set_extent()
 

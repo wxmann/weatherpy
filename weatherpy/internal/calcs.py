@@ -1,5 +1,3 @@
-import cartopy.crs as ccrs
-
 import math
 
 from weatherpy import units
@@ -50,18 +48,11 @@ def relative_percentage(val, minval, maxval):
     return (val - minval) / (maxval - minval)
 
 
-def mask_outside_extent(extent, crs, x, y):
-    lower_left = crs.transform_point(extent.west, extent.south, ccrs.PlateCarree())
-    upper_right = crs.transform_point(extent.east, extent.north, ccrs.PlateCarree())
-    upper_left = crs.transform_point(extent.west, extent.north, ccrs.PlateCarree())
-    lower_right = crs.transform_point(extent.east, extent.south, ccrs.PlateCarree())
+def mask_outside_extent(extent, target_crs, x, y, coordinate_crs=None):
+    target_extnt = extent.transform_to(target_crs)
+    if coordinate_crs is not None:
+        target_extnt = target_extnt.transform_to(coordinate_crs)
 
-    x0 = min(lower_left[0], upper_left[0])
-    x1 = max(upper_right[0], lower_right[0])
-    y0 = min(lower_left[1], lower_right[1])
-    y1 = max(upper_left[1], upper_right[1])
-
-    xmask = (x <= x1) & (x >= x0)
-    ymask = (y <= y1) & (y >= y0)
-
+    xmask = (x <= target_extnt.east) & (x >= target_extnt.west)
+    ymask = (y <= target_extnt.north) & (y >= target_extnt.south)
     return xmask, ymask

@@ -180,7 +180,7 @@ class Goes16Plotter(DatasetContextManager):
         plot_limited = mapper.extent is not None and strict
 
         if plot_limited:
-            xmask, ymask = mask_outside_extent(mapper.extent, self._crs, x, y)
+            xmask, ymask = mask_outside_extent(mapper.extent, mapper.crs, x, y, self._crs)
             xmasked = x[xmask]
             ymasked = y[ymask]
 
