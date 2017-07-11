@@ -147,7 +147,7 @@ class GoesLegacyPlotter(DatasetContextManager):
 
     def default_ctable(self):
         if self._sattype == 'VIS':
-            return ctables.vis.optimized
+            return ctables.vis.default
         elif self._sattype == 'IR':
             return ctables.ir.alpha
         elif self._sattype == 'WV':

@@ -70,12 +70,30 @@ def test_plot_extent_larger_than_data_region():
 
 
 @pytest.mark.mpl_image_compare(tolerance=20)
-def test_plot_infrared_reprojected():
+def test_plot_infrared_reprojected_inside_bounds():
     fig = plt.figure()
     dataset = netCDF4.Dataset(os.sep.join([config.TEST_DATA_DIR, INFRARED_SECTOR_FILE]))
 
     with Goes16Plotter(dataset) as plotter:
-        extent = extents.zoom((41.6, -95.1), km=500)
+        extent = extents.zoom((41.7, -95.1), km=400)
+        crs = ccrs.NearsidePerspective(central_longitude=plotter.position.longitude,
+                                       central_latitude=plotter.position.latitude,
+                                       satellite_height=plotter.position.altitude)
+        mapper = maps.LargeScaleMap(crs)
+        mapper.extent = extent
+        plotter.make_plot(mapper)
+        mapper.draw_default()
+
+    return fig
+
+
+@pytest.mark.mpl_image_compare(tolerance=20)
+def test_plot_infrared_reprojected_outside_bounds():
+    fig = plt.figure()
+    dataset = netCDF4.Dataset(os.sep.join([config.TEST_DATA_DIR, INFRARED_SECTOR_FILE]))
+
+    with Goes16Plotter(dataset) as plotter:
+        extent = extents.zoom((41.7, -95.1), km=1000)
         crs = ccrs.NearsidePerspective(central_longitude=plotter.position.longitude,
                                        central_latitude=plotter.position.latitude,
                                        satellite_height=plotter.position.altitude)
