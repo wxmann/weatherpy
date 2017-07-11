@@ -3,9 +3,10 @@ import os
 import matplotlib.pyplot as plt
 import netCDF4
 import pytest
+import cartopy.crs as ccrs
 
 import config
-from weatherpy import ctables
+from weatherpy import ctables, maps
 from weatherpy.maps import extents
 from weatherpy.satellite.goes16 import Goes16Plotter
 
@@ -63,6 +64,24 @@ def test_plot_extent_larger_than_data_region():
     with Goes16Plotter(dataset) as plotter:
         extent = extents.zoom((41.6, -93.6), km=1000)
         mapper, _ = plotter.make_plot(extent=extent)
+        mapper.draw_default()
+
+    return fig
+
+
+@pytest.mark.mpl_image_compare(tolerance=20)
+def test_plot_infrared_reprojected():
+    fig = plt.figure()
+    dataset = netCDF4.Dataset(os.sep.join([config.TEST_DATA_DIR, INFRARED_SECTOR_FILE]))
+
+    with Goes16Plotter(dataset) as plotter:
+        extent = extents.zoom((41.6, -95.1), km=500)
+        crs = ccrs.NearsidePerspective(central_longitude=plotter.position.longitude,
+                                       central_latitude=plotter.position.latitude,
+                                       satellite_height=plotter.position.altitude)
+        mapper = maps.LargeScaleMap(crs)
+        mapper.extent = extent
+        plotter.make_plot(mapper)
         mapper.draw_default()
 
     return fig
