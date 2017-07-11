@@ -178,9 +178,10 @@ class Goes16Plotter(DatasetContextManager):
             y *= self._position.altitude / 1E6
 
         plot_limited = mapper.extent is not None and strict
+        use_pcolormesh = plot_limited
 
         if plot_limited:
-            xmask, ymask = mask_outside_extent(mapper.extent, mapper.crs, x, y, self._crs)
+            xmask, ymask, data_extnt = mask_outside_extent(mapper.extent, mapper.crs, x, y, self._crs)
             xmasked = x[xmask]
             ymasked = y[ymask]
 
@@ -189,11 +190,12 @@ class Goes16Plotter(DatasetContextManager):
                 # as we can't plot-limit with an empty coordinate array
                 import numpy as np
                 plotdata = np.empty(self._scmi.shape)
-                plot_limited = False
+                use_pcolormesh = False
             else:
                 x = xmasked
                 y = ymasked
                 plotdata = self._scmi[ymask, xmask]
+                use_pcolormesh = not data_extnt.is_outside(mapper.extent)
         else:
             plotdata = self._scmi[:]
 
@@ -221,7 +223,7 @@ class Goes16Plotter(DatasetContextManager):
 
         logger.info("[GOES SAT] Finish processing satellite pixel data")
 
-        if plot_limited:
+        if use_pcolormesh:
             mapper.ax.pcolormesh(x, y, plotdata,
                                  transform=self._crs,
                                  cmap=colortable.cmap, norm=colortable.norm)

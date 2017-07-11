@@ -55,4 +55,4 @@ def mask_outside_extent(extent, target_crs, x, y, coordinate_crs=None):
 
     xmask = (x <= target_extnt.east) & (x >= target_extnt.west)
     ymask = (y <= target_extnt.north) & (y >= target_extnt.south)
-    return xmask, ymask
+    return xmask, ymask, target_extnt

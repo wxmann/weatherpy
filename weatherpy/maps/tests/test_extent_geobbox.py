@@ -71,6 +71,13 @@ class Test_Geobbox(TestCase):
         self.assertEqual(transformed._crs, ccrs.LambertConformal())
 
     def test_transform_to_same_crs(self):
-        transformed = self.extent.transform_to(self.extent._crs)
+        transformed = self.extent.transform_to(self.extent.crs)
 
         self.assertEqual(transformed, self.extent)
+
+    def test_bbox_outside_of_another_bbox(self):
+        bbox_in = geobbox(-99, -97, 30, 40)
+        bbox_not_in = geobbox(-100, -80, 20, 21)
+
+        self.assertTrue(self.extent.is_outside(bbox_in))
+        self.assertFalse(self.extent.is_outside(bbox_not_in))

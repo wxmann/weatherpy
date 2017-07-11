@@ -29,6 +29,10 @@ class geobbox(object):
     def north(self):
         return self._north
 
+    @property
+    def crs(self):
+        return self._crs
+
     def as_tuple(self):
         return self._as_tuple
 
@@ -37,7 +41,7 @@ class geobbox(object):
             return True
         elif not isinstance(other, geobbox):
             return False
-        return self.as_tuple() == other.as_tuple() and self._crs == other._crs
+        return self.as_tuple() == other.as_tuple() and self._crs == other.crs
 
     def __hash__(self):
         coords = list(self.as_tuple())
@@ -48,36 +52,36 @@ class geobbox(object):
         return self.as_tuple()[item]
 
     def __str__(self):
-        return 'geobbox(west={}, east={}, south={}, north={}'.format(self.west, self.east,
-                                                                     self.south, self.north)
+        return 'geobbox(west={}, east={}, south={}, north={})'.format(self.west, self.east,
+                                                                      self.south, self.north)
 
     def top_border(self, numpts=40):
         x = np.linspace(self.west, self.east, numpts)
-        y = np.full(x.shape, self.north)
+        y = np.full(x.shape, self.north, dtype=np.float32)
         return np.vstack([x, y]).T
 
     def bottom_border(self, numpts=40):
         x = np.linspace(self.west, self.east, numpts)
-        y = np.full(x.shape, self.south)
+        y = np.full(x.shape, self.south, dtype=np.float32)
         return np.vstack([x, y]).T
 
     def left_border(self, numpts=40):
         y = np.linspace(self.south, self.north, numpts)
-        x = np.full(y.shape, self.west)
+        x = np.full(y.shape, self.west, dtype=np.float32)
         return np.vstack([x, y]).T
 
     def right_border(self, numpts=40):
         y = np.linspace(self.south, self.north, numpts)
-        x = np.full(y.shape, self.east)
+        x = np.full(y.shape, self.east, dtype=np.float32)
         return np.vstack([x, y]).T
 
     def _transform_line(self, line, to_crs):
         linex = line[:, 0]
         liney = line[:, 1]
-        return to_crs.transform_points(self._crs, linex, liney)[:, 0:2]
+        return to_crs.transform_points(self.crs, linex, liney)[:, 0:2]
 
     def transform_to(self, to_crs):
-        if to_crs == self._crs:
+        if to_crs == self.crs:
             return self
 
         transformed_top = self._transform_line(self.top_border(), to_crs)
@@ -91,6 +95,17 @@ class geobbox(object):
         north = transformed_top[:, 1].max()
 
         return geobbox(west, east, south, north, to_crs)
+
+    def is_outside(self, otherbbox):
+        if otherbbox.crs != self.crs:
+            otherbbox = otherbbox.transform_to(self.crs)
+
+        return all([
+            self.west <= otherbbox.west,
+            self.east >= otherbbox.east,
+            self.south <= otherbbox.south,
+            self.north >= otherbbox.north
+        ])
 
 
 conus = geobbox(-127.5, -65.5, 20.5, 52)
