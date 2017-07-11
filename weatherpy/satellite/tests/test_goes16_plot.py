@@ -13,6 +13,8 @@ VISIBLE_SECTOR_FILE = 'GOES16_Mesoscale-1_20170628_235927_0.64_500m_41.8N_95.6W_
 INFRARED_SECTOR_FILE = 'GOES16_Mesoscale-1_20170628_235927_11.20_2km_41.8N_95.6W_Ch14.nc4'
 WV_SECTOR_FILE = 'GOES16_Mesoscale-1_20170628_235927_6.19_2km_41.8N_95.6W_Ch08.nc4'
 
+INFRARED_FULL_DISK_FILE = 'GOES16_FullDisk_20170710_000037_11.20_6km_0.0S_89.5W_Ch14.nc4'
+
 
 @pytest.mark.mpl_image_compare(tolerance=20)
 def test_plot_visible():
@@ -100,6 +102,18 @@ def test_plot_wv_channel_default_ctable():
     with Goes16Plotter(dataset) as plotter:
         extent = extents.zoom((41.6, -93.6), km=300)
         mapper, _ = plotter.make_plot(extent=extent)
+        mapper.draw_default()
+
+    return fig
+
+
+@pytest.mark.mpl_image_compare(tolerance=20)
+def test_plot_infrared_full_disk():
+    fig = plt.figure()
+    dataset = netCDF4.Dataset(os.sep.join([config.TEST_DATA_DIR, INFRARED_FULL_DISK_FILE]))
+
+    with Goes16Plotter(dataset) as plotter:
+        mapper, _ = plotter.make_plot()
         mapper.draw_default()
 
     return fig
