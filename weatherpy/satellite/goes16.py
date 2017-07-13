@@ -129,7 +129,7 @@ class Goes16Plotter(DatasetContextManager):
                                       latitude_true_scale=geog.standard_parallel,
                                       globe=globe)
         else:
-            raise NotImplementedError("Projection: {} supported at this time".format(proj))
+            raise NotImplementedError("Projection: {} not supported at this time".format(proj))
 
         logger.info("[GOES SAT] Finish processing satellite metadata")
 
