@@ -29,6 +29,10 @@ def fulldisk(channel):
     return Goes16Selection('FullDisk', channel)
 
 
+def puertorico(channel):
+    return Goes16Selection('PRREGI', channel)
+
+
 class Goes16Selection(ThreddsSatelliteSelection):
 
     @staticmethod
@@ -117,8 +121,15 @@ class Goes16Plotter(DatasetContextManager):
                                                  central_longitude=geog.longitude_of_projection_origin,
                                                  satellite_height=geog.perspective_point_height,
                                                  globe=globe)
+        elif proj == 'mercator_projection':
+            globe = ccrs.Globe(ellipse='sphere',
+                               semimajor_axis=geog.semi_major,
+                               semiminor_axis=geog.semi_minor)
+            self._crs = ccrs.Mercator(central_longitude=geog.longitude_of_projection_origin,
+                                      latitude_true_scale=geog.standard_parallel,
+                                      globe=globe)
         else:
-            raise NotImplementedError("Only Lambert Projection and Fixed Grid projections supported at this time")
+            raise NotImplementedError("Projection: {} supported at this time".format(proj))
 
         logger.info("[GOES SAT] Finish processing satellite metadata")
 
