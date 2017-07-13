@@ -63,7 +63,7 @@ class Test_Geobbox(TestCase):
                                                      [-90, 40]]))
 
     def test_transform_to_crs(self):
-        transformed = self.extent.transform_to(ccrs.LambertConformal())
+        transformed = self.extent.rect_transform_to(ccrs.LambertConformal())
 
         np.testing.assert_allclose(np.array(transformed.as_tuple()),
                                    np.array([-438316.88046, 657209.93258, -2132001.958898, 127241.242301]))
@@ -71,7 +71,7 @@ class Test_Geobbox(TestCase):
         self.assertEqual(transformed._crs, ccrs.LambertConformal())
 
     def test_transform_to_same_crs(self):
-        transformed = self.extent.transform_to(self.extent.crs)
+        transformed = self.extent.rect_transform_to(self.extent.crs)
 
         self.assertEqual(transformed, self.extent)
 

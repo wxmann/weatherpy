@@ -46,7 +46,7 @@ class geobbox(object):
     def __hash__(self):
         coords = list(self.as_tuple())
         coords.append(self._crs)
-        return hash(coords)
+        return hash(tuple(coords))
 
     def __getitem__(self, item):
         return self.as_tuple()[item]
@@ -80,7 +80,7 @@ class geobbox(object):
         liney = line[:, 1]
         return to_crs.transform_points(self.crs, linex, liney)[:, 0:2]
 
-    def transform_to(self, to_crs):
+    def rect_transform_to(self, to_crs):
         if to_crs == self.crs:
             return self
 
@@ -98,7 +98,7 @@ class geobbox(object):
 
     def is_outside(self, otherbbox):
         if otherbbox.crs != self.crs:
-            otherbbox = otherbbox.transform_to(self.crs)
+            otherbbox = otherbbox.rect_transform_to(self.crs)
 
         return all([
             self.west <= otherbbox.west,

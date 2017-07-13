@@ -49,9 +49,9 @@ def relative_percentage(val, minval, maxval):
 
 
 def mask_outside_extent(extent, target_crs, x, y, coordinate_crs=None):
-    target_extnt = extent.transform_to(target_crs)
+    target_extnt = extent.rect_transform_to(target_crs)
     if coordinate_crs is not None:
-        target_extnt = target_extnt.transform_to(coordinate_crs)
+        target_extnt = target_extnt.rect_transform_to(coordinate_crs)
 
     xmask = (x <= target_extnt.east) & (x >= target_extnt.west)
     ymask = (y <= target_extnt.north) & (y >= target_extnt.south)

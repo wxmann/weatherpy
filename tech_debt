@@ -1,0 +1,16 @@
+- extents named tuple
+- reverse call order of convert in units module
+- making logging referenced from internal module rather than outside module
+
+
+- Construct CRS using CF conventions:
+http://cfconventions.org/cf-conventions/v1.6.0/cf-conventions.html
+
+- Create convenience methods for GOES legacy
+- convenience method to convert between large-scale and detailed map
+
+- Fix blowup where extent does not intersect with satellite data in GOES-16 sector
+- Apply extent-limiting to GOES-legacy plots
+- Apply auto units-conversion to GOES-legacy plots
+
+- Cartopy version compatibility
