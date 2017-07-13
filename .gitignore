@@ -58,6 +58,9 @@ resources/shapefiles/raw/
 resources/shapefiles/extras
 resources/shapefiles/do_not_check_in
 
+# developer note: my own notes
+tech_debt*
+
 # jupyter notebook
 .ipynb_checkpoints/
 *.ipynb
