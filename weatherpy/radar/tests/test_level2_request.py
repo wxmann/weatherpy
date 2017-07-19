@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch, call
 from siphon.catalog import Dataset
 from siphon.radarserver import RadarQuery, RadarServer
 
-from weatherpy.radar.level2_request import Nexrad2Request
+from weatherpy.radar.nexradl2 import Nexrad2Request
 from weatherpy.thredds import DatasetAccessException
 
 
