@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch, call
 from siphon.catalog import Dataset
 from siphon.radarserver import RadarQuery, RadarServer
 
-from weatherpy.radar.nexradl2 import Nexrad2Request
+from weatherpy.radar.nexradl2 import Nexrad2Selection
 from weatherpy.thredds import DatasetAccessException
 
 
@@ -35,25 +35,25 @@ empty_catalog = MagicMock()
 empty_catalog.datasets = OrderedDict()
 
 
-class TestNexrad2Request(TestCase):
+class TestNexrad2Selection(TestCase):
     def setUp(self):
         self.dummy_radar_server = MagicMock(spec=RadarServer)
         self.q = RadarQuery()
 
         self.dummy_radar_server.query.return_value = self.q
-        self.selection = Nexrad2Request('KMUX', self.dummy_radar_server)
+        self.selection = Nexrad2Selection('KMUX', self.dummy_radar_server)
         self.action = MagicMock()
         self._consume = list
 
     def test_should_create_selection(self):
-        sel = Nexrad2Request('KMUX', self.dummy_radar_server)
+        sel = Nexrad2Selection('KMUX', self.dummy_radar_server)
         self.assert_correct_query(spatial={'stn': ('KMUX',)}, temporal={})
         self.assertIsNotNone(sel)
 
     def test_should_throw_exception_given_incorrect_station(self):
         self.dummy_radar_server.validate_query.return_value = False
         with self.assertRaises(DatasetAccessException):
-            Nexrad2Request('Incorrect_station', self.dummy_radar_server)
+            Nexrad2Selection('Incorrect_station', self.dummy_radar_server)
 
     def test_should_get_latest_radar(self):
         self.dummy_radar_server.get_catalog.return_value = dummy_catalog
@@ -125,7 +125,7 @@ class TestNexrad2Request(TestCase):
         t1 = datetime(2017, 7, 15, 0, 0)
         t2 = datetime(2017, 7, 16, 0, 30)
 
-        with patch('weatherpy.radar.level2_request.pyhelpers.current_time_utc', return_value=t2):
+        with patch('weatherpy.radar.nexradl2.pyhelpers.current_time_utc', return_value=t2):
             items = self.selection.since(t1, action=self.action)
             self._consume(items)
             self.assert_correct_query(spatial={'stn': ('KMUX',)},

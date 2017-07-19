@@ -19,10 +19,10 @@ def get_radar_server(host, dataset):
     return RadarServer(url)
 
 
-class Nexrad2Request(object):
+class Nexrad2Selection(object):
     @staticmethod
     def _default_action(ds):
-        return dap_plotter(ds, Level2RadarPlotter)
+        return dap_plotter(ds, Nexrad2Plotter)
 
     def __init__(self, station, server=None):
         self._radarserver = server or get_radar_server(config.LEVEL_2_RADAR_CATALOG.host,
@@ -38,7 +38,7 @@ class Nexrad2Request(object):
 
     def latest(self, action=None):
         if action is None:
-            action = Nexrad2Request._default_action
+            action = Nexrad2Selection._default_action
         query = self._q.all_times()
         all_ds = self._get_datasets(query, 'desc')
         try:
@@ -49,7 +49,7 @@ class Nexrad2Request(object):
 
     def around(self, when, action=None):
         if action is None:
-            action = Nexrad2Request._default_action
+            action = Nexrad2Selection._default_action
         query = self._q.time(when)
         ds = self._get_datasets(query, 'asc')
 
@@ -65,7 +65,7 @@ class Nexrad2Request(object):
         if t1 >= t2:
             raise ValueError("t1 must be less than t2")
         if action is None:
-            action = Nexrad2Request._default_action
+            action = Nexrad2Selection._default_action
         query = self._q.time_range(t1, t2)
 
         return (action(ds) for ds in self._get_datasets(query, sort))
@@ -87,7 +87,7 @@ class Nexrad2Request(object):
 DEFAULT_RANGE_MI = 143.
 
 
-class Level2RadarPlotter(DatasetContextManager):
+class Nexrad2Plotter(DatasetContextManager):
     suffix_mapper = {radartype: radartype[0] for radartype in (
         'CorrelationCoefficient',
         'DifferentialPhase',
@@ -98,7 +98,7 @@ class Level2RadarPlotter(DatasetContextManager):
     suffix_mapper['RadialVelocity'] = 'V'
 
     def __init__(self, dataset, radartype=None, hires=True, sweep=0):
-        self._dataset = dataset
+        super().__init__(dataset)
 
         self._radartype = radartype or 'Reflectivity'
         self._hires = hires
@@ -106,15 +106,15 @@ class Level2RadarPlotter(DatasetContextManager):
         self._radarvar = self.get_radar_variable(self._radartype)
 
         self._extent = (
-            self._dataset.geospatial_lon_min,
-            self._dataset.geospatial_lon_max,
-            self._dataset.geospatial_lat_min,
-            self._dataset.geospatial_lat_max
+            self.dataset.geospatial_lon_min,
+            self.dataset.geospatial_lon_max,
+            self.dataset.geospatial_lat_min,
+            self.dataset.geospatial_lat_max
         )
 
         self._stn_coordinates = (
-            self._dataset.StationLongitude,
-            self._dataset.StationLatitude
+            self.dataset.StationLongitude,
+            self.dataset.StationLatitude
         )
 
         self._mesh = None
@@ -125,7 +125,7 @@ class Level2RadarPlotter(DatasetContextManager):
 
     @radartype.setter
     def radartype(self, new_radar_type):
-        if new_radar_type not in Level2RadarPlotter.suffix_mapper:
+        if new_radar_type not in Nexrad2Plotter.suffix_mapper:
             raise ValueError("Invalid radar type {}".format(new_radar_type))
         self._radartype = new_radar_type
         self._radarvar = self.get_radar_variable(self._radartype)
@@ -149,10 +149,10 @@ class Level2RadarPlotter(DatasetContextManager):
 
     @property
     def station(self):
-        return self._dataset.Station
+        return self.dataset.Station
 
     def timestamp(self):
-        timevar = self._dataset.variables[self._getncvar('time')]
+        timevar = self.dataset.variables[self._getncvar('time')]
         raw_time = timevar[self._sweep]
         time_units = timevar.units.replace('msecs', 'milliseconds')
         return nc.num2date(min(raw_time), time_units)
@@ -165,17 +165,17 @@ class Level2RadarPlotter(DatasetContextManager):
         return radarvar.units
 
     def get_radar_variable(self, radartype, validate=True):
-        var = self._dataset.variables[self._getncvar(radartype)]
+        var = self.dataset.variables[self._getncvar(radartype)]
         var.set_auto_maskandscale(False)
         if validate:
-            Level2RadarPlotter._validate(var)
+            Nexrad2Plotter._validate(var)
         return var
 
     def data_for_sweep(self, sweep):
         logger.info('[PROCESS LEVEL 2] Finish parsing radar information for radar station: {}, timestamp: {}'.format(
             self.station, self.timestamp()))
         raw_data = self._radarvar[sweep]
-        transformed_data = Level2RadarPlotter._transform_radar_pix(self._radarvar, raw_data)
+        transformed_data = Nexrad2Plotter._transform_radar_pix(self._radarvar, raw_data)
         return self._convert_units(transformed_data)
 
     def default_map(self):
@@ -197,9 +197,10 @@ class Level2RadarPlotter(DatasetContextManager):
             raise ValueError("Radar images are not supported on the Plate Carree projection at this time.")
         if mapper is None:
             mapper = self.default_map()
-            mapper.initialize_drawing()
         if colortable is None:
             colortable = self.default_ctable()
+        if not mapper.initialized():
+            mapper.initialize_drawing()
 
         x, y = self._calculate_xy()
         radardata = self.data_for_sweep(self._sweep)
@@ -221,8 +222,8 @@ class Level2RadarPlotter(DatasetContextManager):
         return mapper
 
     def _calculate_xy(self):
-        az = self._dataset.variables[self._getncvar('azimuth')][self._sweep]
-        rng = self._dataset.variables[self._getncvar('distance')][:]
+        az = self.dataset.variables[self._getncvar('azimuth')][self._sweep]
+        rng = self.dataset.variables[self._getncvar('distance')][:]
         az_rad = np.deg2rad(az)[:, None]
 
         # sin <-> x and cos <-> y since azimuth is measure from 0 deg == North.
@@ -231,10 +232,10 @@ class Level2RadarPlotter(DatasetContextManager):
         return x, y
 
     def _getncvar(self, prefix):
-        if prefix in Level2RadarPlotter.suffix_mapper:
+        if prefix in Nexrad2Plotter.suffix_mapper:
             varname = prefix
         else:
-            varname = prefix + Level2RadarPlotter.suffix_mapper[self._radartype]
+            varname = prefix + Nexrad2Plotter.suffix_mapper[self._radartype]
         if self._hires:
             varname += '_HI'
         return varname
