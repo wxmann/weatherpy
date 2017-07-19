@@ -6,7 +6,7 @@ from siphon.catalog import TDSCatalog
 
 from weatherpy import ctables, maps, units
 from weatherpy.internal import mask_outside_extent, logger
-from weatherpy.satellite.shared import ThreddsSatelliteSelection, satpos
+from weatherpy.satellite._common import ThreddsSatelliteSelection, satpos
 from weatherpy.thredds import DatasetContextManager, dap_plotter
 from weatherpy.units import Scale, UnitsException, arrayconvert
 

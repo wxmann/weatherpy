@@ -1,10 +1,12 @@
-from datetime import datetime, timedelta
+from collections import OrderedDict
+from datetime import datetime
 from unittest import TestCase
 from unittest.mock import MagicMock, patch, call
 
-from siphon.radarserver import RadarQuery
+from siphon.catalog import Dataset
+from siphon.radarserver import RadarQuery, RadarServer
 
-from weatherpy.radar import Nexrad2Request
+from weatherpy.radar.level2_request import Nexrad2Request
 from weatherpy.thredds import DatasetAccessException
 
 
@@ -16,184 +18,144 @@ def _create_dummy_dataset(name):
     return mockobj
 
 
+ds_keys = (
+    'Level2_KMUX_20170715_2333.ar2v',
+    'Level2_KMUX_20170715_2349.ar2v',
+    'Level2_KMUX_20170715_2336.ar2v',
+    'Level2_KMUX_20170716_0003.ar2v',
+    'Level2_KMUX_20170716_0013.ar2v'
+)
+
+dummy_datasets = OrderedDict({ds_key: MagicMock(name=ds_key, spec=Dataset) for ds_key in ds_keys})
+
+dummy_catalog = MagicMock()
+dummy_catalog.datasets = dummy_datasets
+
+empty_catalog = MagicMock()
+empty_catalog.datasets = OrderedDict()
+
+
 class TestNexrad2Request(TestCase):
     def setUp(self):
-        self.radar_server_patch = patch('weatherpy.radar.level2_request.RadarServer', autospec=True)
-        self.dummy_radar_server = self.radar_server_patch.start()
-        self.dummy_radar_server.query = MagicMock(spec=RadarQuery)
+        self.dummy_radar_server = MagicMock(spec=RadarServer)
+        self.q = RadarQuery()
 
-        self.radar_request_patch = patch('weatherpy.radar.level2_request.get_radar_server',
-                                         return_value=self.dummy_radar_server)
-        self.radar_request_patch.start()
+        self.dummy_radar_server.query.return_value = self.q
+        self.selection = Nexrad2Request('KMUX', self.dummy_radar_server)
+        self.action = MagicMock()
+        self._consume = list
 
-        self.check_station_patch = patch('weatherpy.radar.level2_request._valid_station', return_value=True)
-        self.check_station_patch.start()
+    def test_should_create_selection(self):
+        sel = Nexrad2Request('KMUX', self.dummy_radar_server)
+        self.assert_correct_query(spatial={'stn': ('KMUX',)}, temporal={})
+        self.assertIsNotNone(sel)
 
-    def tearDown(self):
-        self.radar_request_patch.stop()
-        self.check_station_patch.stop()
-        self.radar_server_patch.stop()
-
-    def test_should_initialize_catalog(self):
-        req = Nexrad2Request('KMUX')
-        self.assertIsNotNone(req)
-
-    @patch('weatherpy.radar.level2_request._valid_station', return_value=False)
-    def test_should_throw_exception_given_incorrect_station(self, validst):
+    def test_should_throw_exception_given_incorrect_station(self):
+        self.dummy_radar_server.validate_query.return_value = False
         with self.assertRaises(DatasetAccessException):
-            Nexrad2Request('Incorrect_station')
+            Nexrad2Request('Incorrect_station', self.dummy_radar_server)
 
-    @patch('weatherpy.radar.level2_request._sorted_datasets')
-    def test_should_query_radar_by_index(self, ds_returned):
-        dummy_datasets = [_create_dummy_dataset(str(name)) for name in range(3)]
-        ds_returned.return_value = dummy_datasets
+    def test_should_get_latest_radar(self):
+        self.dummy_radar_server.get_catalog.return_value = dummy_catalog
 
-        req = Nexrad2Request('KMUX')
-        found = req[-1]
-        self.assertEqual(found, '2-OPENDAP')
+        self.selection.latest(self.action)
 
-    @patch('weatherpy.radar.level2_request._sorted_datasets')
-    def test_should_query_radar_by_index_slice(self, ds_returned):
-        dummy_datasets = [_create_dummy_dataset(str(name)) for name in range(4)]
-        ds_returned.return_value = dummy_datasets
+        self.assert_correct_query(spatial={'stn': ('KMUX',)}, temporal={'temporal': 'all'})
+        self.dummy_radar_server.get_catalog.assert_called_with(self.q)
+        self.action.assert_called_with(dummy_datasets[ds_keys[-1]])
 
-        req = Nexrad2Request('KMUX')
-        found = req[1:3]
-        self.assertEqual(next(found), '1-OPENDAP')
-        self.assertEqual(next(found), '2-OPENDAP')
-        with self.assertRaises(StopIteration):
-            next(found)
+    def test_should_raise_if_no_latest_radar(self):
+        self.dummy_radar_server.get_catalog.return_value = empty_catalog
+        with self.assertRaises(DatasetAccessException):
+            self.selection.latest(self.action)
 
-    @patch('weatherpy.radar.level2_request._sorted_datasets')
-    def test_should_query_radar_by_index_slice_to_end(self, ds_returned):
-        dummy_datasets = [_create_dummy_dataset(str(name)) for name in range(3)]
-        ds_returned.return_value = dummy_datasets
+        self.assert_correct_query(spatial={'stn': ('KMUX',)}, temporal={'temporal': 'all'})
 
-        req = Nexrad2Request('KMUX')
-        found = req[-2:]
-        self.assertEqual(next(found), '1-OPENDAP')
-        self.assertEqual(next(found), '2-OPENDAP')
-        with self.assertRaises(StopIteration):
-            next(found)
+    def test_should_get_radars_between(self):
+        self.dummy_radar_server.get_catalog.return_value = dummy_catalog
 
-    @patch('weatherpy.radar.level2_request._sorted_datasets')
-    def test_should_query_radar_by_all_index_slice(self, ds_returned):
-        dummy_datasets = [_create_dummy_dataset(str(name)) for name in range(3)]
-        ds_returned.return_value = dummy_datasets
+        t1 = datetime(2017, 7, 15, 23, 30)
+        t2 = datetime(2017, 7, 16, 0, 30)
+        items = self.selection.between(t1, t2, action=self.action)
+        self._consume(items)
 
-        req = Nexrad2Request('KMUX')
-        found = req[:]
-        self.assertEqual(list(found), ['0-OPENDAP', '1-OPENDAP', '2-OPENDAP'])
+        self.assert_correct_query(spatial={'stn': ('KMUX',)},
+                                  temporal={'time_start': t1.isoformat(),
+                                            'time_end': t2.isoformat()})
+        self.dummy_radar_server.get_catalog.assert_called_with(self.q)
 
-    @patch('weatherpy.radar.level2_request._sorted_datasets')
-    def test_should_query_radar_by_timestamp(self, ds_returned):
-        dummy_dataset = [_create_dummy_dataset('dataset')]
-        ds_returned.return_value = dummy_dataset
+        sorted_ds_keys = sorted(ds_keys)
+        self.action.assert_has_calls([call(dummy_datasets[ds_key]) for ds_key in sorted_ds_keys])
 
-        req = Nexrad2Request('KMUX')
-        timestamp = datetime(2017, 2, 10, 0, 0)
-        found = req[timestamp]
+    def test_should_get_empty_radars_between(self):
+        self.dummy_radar_server.get_catalog.return_value = empty_catalog
 
-        self.dummy_radar_server.query.assert_called_once_with()
-        station_query = self.dummy_radar_server.query.return_value.stations
-        time_query = station_query.return_value.time
-        station_query.assert_called_with('KMUX')
-        time_query.assert_called_with(timestamp)
-        self.assertEqual(found, 'dataset-OPENDAP')
+        t1 = datetime(2017, 7, 15, 23, 30)
+        t2 = datetime(2017, 7, 16, 0, 30)
+        items = self.selection.between(t1, t2, action=self.action)
+        consumed = self._consume(items)
 
-    @patch('weatherpy.radar.level2_request._sorted_datasets')
-    def test_should_query_radar_by_timestamp_range(self, ds_returned):
-        dummy_datasets = [_create_dummy_dataset(str(name)) for name in range(3)]
-        ds_returned.return_value = dummy_datasets
+        self.assert_correct_query(spatial={'stn': ('KMUX',)},
+                                  temporal={'time_start': t1.isoformat(),
+                                            'time_end': t2.isoformat()})
+        self.dummy_radar_server.get_catalog.assert_called_with(self.q)
 
-        req = Nexrad2Request('KMUX')
-        early_time = datetime(2017, 2, 10, 0, 0)
-        later_time = datetime(2017, 2, 10, 1, 0)
-        found = req[early_time: later_time]
+        self.action.assert_not_called()
+        self.assertFalse(consumed)
 
-        self.dummy_radar_server.query.assert_called_once_with()
-        station_query = self.dummy_radar_server.query.return_value.stations
-        time_query = self.dummy_radar_server.query.return_value.time_range
-        station_query.assert_called_with('KMUX')
-        time_query.assert_called_with(early_time, later_time)
-        self.assertEqual(tuple(found), ('0-OPENDAP', '1-OPENDAP', '2-OPENDAP'))
+    def test_should_get_radars_between_desc(self):
+        self.dummy_radar_server.get_catalog.return_value = dummy_catalog
 
-    @patch('weatherpy.radar.level2_request.current_time_utc')
-    @patch('weatherpy.radar.level2_request._sorted_datasets')
-    def test_should_query_radar_by_timestamp_range_with_no_ending_date(self, ds_returned, time_func):
-        dummy_datasets = [_create_dummy_dataset(str(name)) for name in range(3)]
-        ds_returned.return_value = dummy_datasets
-        time_func.return_value = datetime(2017, 2, 11, 0, 0)
+        t1 = datetime(2017, 7, 15, 23, 30)
+        t2 = datetime(2017, 7, 16, 0, 30)
+        items = self.selection.between(t1, t2, action=self.action, sort='desc')
+        self._consume(items)
 
-        req = Nexrad2Request('KMUX')
-        early_time = datetime(2017, 2, 10, 0, 0)
-        found = req[early_time:]
+        self.assert_correct_query(spatial={'stn': ('KMUX',)},
+                                  temporal={'time_start': t1.isoformat(),
+                                            'time_end': t2.isoformat()})
+        self.dummy_radar_server.get_catalog.assert_called_with(self.q)
 
-        self.dummy_radar_server.query.assert_called_once_with()
-        station_query = self.dummy_radar_server.query.return_value.stations
-        time_query = self.dummy_radar_server.query.return_value.time_range
-        station_query.assert_called_with('KMUX')
-        time_query.assert_called_with(early_time, time_func.return_value)
-        self.assertEqual(tuple(found), ('0-OPENDAP', '1-OPENDAP', '2-OPENDAP'))
+        sorted_ds_keys = sorted(ds_keys, reverse=True)
+        self.action.assert_has_calls([call(dummy_datasets[ds_key]) for ds_key in sorted_ds_keys])
 
-    @patch('weatherpy.radar.level2_request.current_time_utc')
-    @patch('weatherpy.radar.level2_request._sorted_datasets')
-    def test_fail_if_query_radar_by_timestamp_range_with_no_start_date(self, ds_returned, time_func):
-        dummy_datasets = [_create_dummy_dataset(str(name)) for name in range(3)]
-        ds_returned.return_value = dummy_datasets
-        time_func.return_value = datetime(2017, 2, 11, 0, 0)
+    def test_should_get_radars_since(self):
+        self.dummy_radar_server.get_catalog.return_value = dummy_catalog
 
-        req = Nexrad2Request('KMUX')
-        endtime = datetime(2017, 2, 12, 0, 0)
-        with self.assertRaises(ValueError):
-            req[:endtime]
+        t1 = datetime(2017, 7, 15, 0, 0)
+        t2 = datetime(2017, 7, 16, 0, 30)
 
-    @patch('weatherpy.radar.level2_request._sorted_datasets')
-    def test_should_query_radar_by_timestamp_range_with_timestamp_step(self, ds_returned):
-        # TODO: figure out how to use side_effect here
-        ds_returned.return_value = [_create_dummy_dataset('1')]
+        with patch('weatherpy.radar.level2_request.pyhelpers.current_time_utc', return_value=t2):
+            items = self.selection.since(t1, action=self.action)
+            self._consume(items)
+            self.assert_correct_query(spatial={'stn': ('KMUX',)},
+                                      temporal={'time_start': t1.isoformat(),
+                                                'time_end': t2.isoformat()})
+            self.dummy_radar_server.get_catalog.assert_called_with(self.q)
 
-        req = Nexrad2Request('KMUX')
-        starttime = datetime(2017, 2, 12, 0, 0)
-        endtime = datetime(2017, 2, 12, 1, 0)
-        delta = timedelta(minutes=30)
-        found = req[starttime: endtime: delta]
+            sorted_ds_keys = sorted(ds_keys)
+            self.action.assert_has_calls([call(dummy_datasets[ds_key]) for ds_key in sorted_ds_keys])
 
-        self.dummy_radar_server.query.assert_called_once_with()
-        station_query = self.dummy_radar_server.query.return_value.stations
-        time_query = self.dummy_radar_server.query.return_value.time
+    def test_should_get_radars_around(self):
+        around_cat = MagicMock()
+        ds_key = 'Level2_KMUX_20170716_0003.ar2v'
+        around_ds = OrderedDict({ds_key: MagicMock(name=ds_key, spec=Dataset)})
+        around_cat.datasets = around_ds
+        self.dummy_radar_server.get_catalog.return_value = around_cat
 
-        station_query.assert_called_with('KMUX')
-        self.assertEqual(list(found), ['1-OPENDAP'] * 3)
-        # calls only happen when we create a tuple
-        time_query.assert_has_calls([call(starttime), call(starttime + delta)])
+        time = datetime(2017, 7, 15, 0, 0)
+        self.selection.around(time, action=self.action)
 
-    @patch('weatherpy.radar.level2_request._sorted_datasets')
-    def test_should_query_radar_by_timestamp_range_with_int_step(self, ds_returned):
-        # TODO: figure out how to use side_effect here
-        ds_returned.return_value = [_create_dummy_dataset('1')] * 3
+        self.assert_correct_query(spatial={'stn': ('KMUX',)},
+                                  temporal={'time': time.isoformat()})
+        self.dummy_radar_server.get_catalog.assert_called_with(self.q)
+        self.action.assert_called_with(around_ds[ds_key])
 
-        req = Nexrad2Request('KMUX')
-        starttime = datetime(2017, 2, 12, 0, 0)
-        endtime = datetime(2017, 2, 12, 1, 0)
-        delta = 2
-        found = req[starttime: endtime: delta]
+    def assert_correct_query(self, spatial, temporal):
+        for k, v in self.q.spatial_query.items():
+            self.assertIn(k, spatial)
+            self.assertEqual(spatial[k], v)
 
-        self.dummy_radar_server.query.assert_called_once_with()
-        station_query = self.dummy_radar_server.query.return_value.stations
-
-        station_query.assert_called_with('KMUX')
-        self.assertEqual(tuple(found), ('1-OPENDAP', '1-OPENDAP'))
-
-    @patch('weatherpy.radar.level2_request.current_time_utc')
-    @patch('weatherpy.radar.level2_request._sorted_datasets')
-    def test_should_fail_if_use_invalid_step_in_slice(self, ds_returned, time_func):
-        dummy_datasets = [_create_dummy_dataset(str(name)) for name in range(3)]
-        ds_returned.return_value = dummy_datasets
-        time_func.return_value = datetime(2017, 2, 11, 0, 0)
-
-        req = Nexrad2Request('KMUX')
-        starttime = datetime(2017, 2, 12, 0, 0)
-        endtime = datetime(2017, 2, 13, 0, 0)
-        with self.assertRaises(ValueError):
-            req[starttime: endtime: 1.5]
+        for k, v in self.q.time_query.items():
+            self.assertIn(k, temporal)
+            self.assertEqual(temporal[k], v)

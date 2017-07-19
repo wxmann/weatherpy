@@ -8,7 +8,7 @@ from siphon.catalog import TDSCatalog
 from weatherpy import ctables, units
 from weatherpy import maps
 from weatherpy.internal import logger
-from weatherpy.satellite.shared import ThreddsSatelliteSelection
+from weatherpy.satellite._common import ThreddsSatelliteSelection
 from weatherpy.thredds import dap_plotter, DatasetContextManager
 
 

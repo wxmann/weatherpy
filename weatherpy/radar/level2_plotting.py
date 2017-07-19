@@ -1,5 +1,3 @@
-from contextlib import contextmanager
-
 import netCDF4 as nc
 import numpy as np
 from cartopy import crs as ccrs
@@ -8,20 +6,12 @@ from matplotlib import patches
 from weatherpy import maps, ctables, plotextras
 from weatherpy.internal import bbox_from_coord
 from weatherpy.internal import logger
+from weatherpy.thredds import DatasetContextManager
 
 DEFAULT_RANGE_MI = 143.
 
 
-@contextmanager
-def radar2open(url, **kwargs):
-    dataset = nc.Dataset(url)
-    try:
-        yield Level2RadarPlotter(dataset, **kwargs)
-    finally:
-        dataset.close()
-
-
-class Level2RadarPlotter(object):
+class Level2RadarPlotter(DatasetContextManager):
     suffix_mapper = {radartype: radartype[0] for radartype in (
         'CorrelationCoefficient',
         'DifferentialPhase',

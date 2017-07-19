@@ -15,9 +15,9 @@ class ThreddsSatelliteSelection(object):
 
         try:
             _, ds = next(datasets)
-            return action(ds)
         except StopIteration:
             raise DatasetAccessException("No datasets found within {} of right now.".format(within))
+        return action(ds)
 
     def _around_impl(self, when, within, action):
         dataset_by_deltas = {abs((ts - when).total_seconds()): ds for ts, ds in
@@ -66,8 +66,7 @@ class ThreddsSatelliteSelection(object):
             return ()
         reverse = sort == 'desc'
         dataset_keys = sorted(catalog.datasets.keys(), reverse=reverse)
-        for ds_key in dataset_keys:
-            yield self._timestamp_from_dataset(ds_key), catalog.datasets[ds_key]
+        return ((self._timestamp_from_dataset(ds_key), catalog.datasets[ds_key]) for ds_key in dataset_keys)
 
     def _get_catalog(self, query_date):
         raise NotImplementedError("Subclasses must implement _get_catalog method")

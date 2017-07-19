@@ -1,16 +1,14 @@
 import matplotlib.pyplot as plt
 
 from weatherpy import plotextras
-from weatherpy.radar import radar2open
-from weatherpy.radar import Nexrad2Request
+from weatherpy.radar import level2_request
 
 
 def plot_latest_radar(station):
     text_color = '0.85'
-    # with radar2open(Nexrad2Request(station)[datetime(2017, 5, 10, 4, 0)],
-    #                 radartype='RadialVelocity') as radarplot:
-    with radar2open(Nexrad2Request(station)[-1],
-                    radartype='RadialVelocity') as radarplot:
+    sel = level2_request.Nexrad2Request(station)
+    with sel.latest() as radarplot:
+        radarplot.radartype = 'RadialVelocity'
         radarmap, ctable = radarplot.make_plot()
         radarplot.range_ring(radarmap, color=text_color)
         radarmap.draw_default()

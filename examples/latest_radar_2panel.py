@@ -1,13 +1,13 @@
 import matplotlib.pyplot as plt
 
 from weatherpy import plotextras
-from weatherpy.radar import radar2open
-from weatherpy.radar import Nexrad2Request
+from weatherpy.radar import level2_request
 
 
 def plot_latest_radar(station):
     text_color = '0.85'
-    with radar2open(Nexrad2Request(station)[-1]) as radarplot:
+    sel = level2_request.Nexrad2Request(station)
+    with sel.latest() as radarplot:
         refl_panel = radarplot.default_map()
         refl_panel.initialize_drawing(subplot=121)
         refl_panel.draw_default()
