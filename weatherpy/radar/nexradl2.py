@@ -100,10 +100,14 @@ class Nexrad2Plotter(DatasetContextManager):
     def __init__(self, dataset, radartype=None, hires=True, sweep=0):
         super().__init__(dataset)
 
-        self._radartype = radartype or 'Reflectivity'
-        self._hires = hires
-        self._sweep = sweep
-        self._radarvar = self.get_radar_variable(self._radartype)
+        # declare radar-specific attributes
+        self._radartype = None
+        self._hires = None
+        self._sweep = None
+        self._radarvar = None
+        self._timestamp = None
+        self._radarunits = None
+        self.set_radar(radartype, hires, sweep)
 
         self._extent = (
             self.dataset.geospatial_lon_min,
@@ -123,60 +127,39 @@ class Nexrad2Plotter(DatasetContextManager):
     def radartype(self):
         return self._radartype
 
-    @radartype.setter
-    def radartype(self, new_radar_type):
-        if new_radar_type not in Nexrad2Plotter.suffix_mapper:
-            raise ValueError("Invalid radar type {}".format(new_radar_type))
-        self._radartype = new_radar_type
-        self._radarvar = self.get_radar_variable(self._radartype)
-
     @property
     def hires(self):
         return self._hires
-
-    @hires.setter
-    def hires(self, set_hires):
-        self._hires = set_hires
 
     @property
     def sweep(self):
         return self._sweep
 
-    @sweep.setter
-    def sweep(self, sweepval):
-        # TODO: validation on sweep in range
-        self._sweep = sweepval
-
     @property
     def station(self):
         return self.dataset.Station
 
+    @property
     def timestamp(self):
+        return self._timestamp
+
+    def set_radar(self, radartype=None, hires=True, sweep=0):
+        self._radartype = radartype or 'Reflectivity'
+        if self._radartype not in Nexrad2Plotter.suffix_mapper:
+            raise ValueError("Invalid radar type {}".format(self._radartype))
+
+        self._hires = hires
+        # TODO: validation of hires
+
+        self._sweep = sweep
+        self._radarvar = self.dataset.variables[self._getncvar(self._radartype)]
+
         timevar = self.dataset.variables[self._getncvar('time')]
         raw_time = timevar[self._sweep]
         time_units = timevar.units.replace('msecs', 'milliseconds')
-        return nc.num2date(min(raw_time), time_units)
+        self._timestamp = nc.num2date(min(raw_time), time_units)
 
-    def units(self, radartype=None):
-        if radartype is None:
-            radarvar = self._radarvar
-        else:
-            radarvar = self.get_radar_variable(radartype, validate=False)
-        return radarvar.units
-
-    def get_radar_variable(self, radartype, validate=True):
-        var = self.dataset.variables[self._getncvar(radartype)]
-        var.set_auto_maskandscale(False)
-        if validate:
-            Nexrad2Plotter._validate(var)
-        return var
-
-    def data_for_sweep(self, sweep):
-        logger.info('[PROCESS LEVEL 2] Finish parsing radar information for radar station: {}, timestamp: {}'.format(
-            self.station, self.timestamp()))
-        raw_data = self._radarvar[sweep]
-        transformed_data = Nexrad2Plotter._transform_radar_pix(self._radarvar, raw_data)
-        return self._convert_units(transformed_data)
+        self._radarunits = self._radarvar.units
 
     def default_map(self):
         crs = maps.projections.lambertconformal(lon0=self._stn_coordinates[0], lat0=self._stn_coordinates[1])
@@ -203,7 +186,10 @@ class Nexrad2Plotter(DatasetContextManager):
             mapper.initialize_drawing()
 
         x, y = self._calculate_xy()
-        radardata = self.data_for_sweep(self._sweep)
+        radardata = self._data_for_sweep()
+
+        if self._radarunits != colortable.unit:
+            colortable = colortable.convert(self._radarunits)
         self._mesh = mapper.ax.pcolormesh(x, y, radardata,
                                           cmap=colortable.cmap, norm=colortable.norm, zorder=0)
         return mapper, colortable
@@ -231,6 +217,21 @@ class Nexrad2Plotter(DatasetContextManager):
         y = rng * np.cos(az_rad)
         return x, y
 
+    def _data_for_sweep(self):
+        logger.info('[PROCESS LEVEL 2] Finish parsing radar information for '
+                    'radar station: {}, timestamp: {}'.format(self.station, self.timestamp))
+
+        # If flag is there, the data needs to be converted to 8-bit unsigned integer
+        if '_Unsigned' in self._radarvar.ncattrs() and self._radarvar._Unsigned == 'true':
+            self._radarvar.set_auto_maskandscale(False)
+            data = self._radarvar[self._sweep]
+            data = data.view('uint8')
+            masked_data = np.ma.array(data, mask=data == 0)
+            return masked_data * self._radarvar.scale_factor + self._radarvar.add_offset
+        else:
+            data = self._radarvar[self._sweep]
+            return np.ma.array(data, mask=data == 0)
+
     def _getncvar(self, prefix):
         if prefix in Nexrad2Plotter.suffix_mapper:
             varname = prefix
@@ -239,20 +240,3 @@ class Nexrad2Plotter(DatasetContextManager):
         if self._hires:
             varname += '_HI'
         return varname
-
-    @staticmethod
-    def _validate(var):
-        return
-
-    @staticmethod
-    def _transform_radar_pix(radar_var, raw_radar_data):
-        # inspired by http://nbviewer.jupyter.org/gist/dopplershift/356f2e14832e9b676207
-        if '_Unsigned' in radar_var.ncattrs() and radar_var._Unsigned == 'true':
-            raw_radar_data = raw_radar_data.view('uint8')
-        masked_data = np.ma.array(raw_radar_data, mask=raw_radar_data == 0)
-        return masked_data * radar_var.scale_factor + radar_var.add_offset
-
-    def _convert_units(self, data):
-        if self._radartype == 'RadialVelocity' and self.units('RadialVelocity') == 'm/s':
-            return data * 1.94384
-        return data

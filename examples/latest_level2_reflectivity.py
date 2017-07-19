@@ -16,7 +16,7 @@ def plot_latest_radar(station):
         plotextras.top_right_inset(radarmap.ax, ctable, color=text_color)
 
         title_text = '{} 0.5 deg Reflectivity, {}'.format(station,
-                                                          radarplot.timestamp().strftime('%Y %b %d %H:%M UTC'))
+                                                          radarplot.timestamp.strftime('%Y %b %d %H:%M UTC'))
         plotextras.bottom_right_stamp(title_text, radarmap.ax, color=text_color)
         plt.show()
 
