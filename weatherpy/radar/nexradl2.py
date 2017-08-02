@@ -9,6 +9,7 @@ import config
 from weatherpy import maps, ctables, plotextras
 from weatherpy.internal import pyhelpers, logger, bbox_from_coord
 from weatherpy.thredds import DatasetAccessException, dap_plotter, DatasetContextManager
+from weatherpy.units import Scale
 
 
 def get_radar_server(host, dataset):
@@ -98,12 +99,12 @@ class Nexrad2Plotter(DatasetContextManager):
     suffix_mapper['RadialVelocity'] = 'V'
 
     ctable_mapper = {
-        'CorrelationCoefficient': None, #TODO: implement
-        'DifferentialPhase': None, #TODO: implement
-        'DifferentialReflectivity': ctables.diff_reflectivity.default,
+        'CorrelationCoefficient': ctables.otherradars.corr_coeffic,
+        'DifferentialPhase': None,  #TODO: implement
+        'DifferentialReflectivity': ctables.otherradars.diff_reflectivity,
         'Reflectivity': ctables.reflectivity.nws_default,
-        'RadialVelocity': ctables.velocity.default,
-        'SpectrumWidth': None # TODO: implement
+        'RadialVelocity': ctables.otherradars.velocity,
+        'SpectrumWidth': None  # TODO: implement
     }
 
     def __init__(self, dataset, radartype=None, hires=True, sweep=0):
@@ -169,6 +170,8 @@ class Nexrad2Plotter(DatasetContextManager):
         self._timestamp = nc.num2date(min(raw_time), time_units)
 
         self._radarunits = self._radarvar.units
+        if self._radarunits is None or self._radarunits == 'N/A':
+            self._radarunits = Scale()
 
     def default_map(self):
         crs = maps.projections.lambertconformal(lon0=self._stn_coordinates[0], lat0=self._stn_coordinates[1])

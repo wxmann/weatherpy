@@ -47,7 +47,7 @@ class Colortable(object):
     def convert(self, to_unit):
         if to_unit == self._unit:
             return self
-        elif not isinstance(to_unit, Unit):
+        elif not isinstance(to_unit, (Unit, Scale)):
             to_unit = units.get(to_unit)
 
         # implementation detail: the values of new_dict must be deep-copies

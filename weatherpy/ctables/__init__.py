@@ -1,1 +1,1 @@
-from .repos import vis, ir, wv, reflectivity, velocity, diff_reflectivity
+from .repos import vis, ir, wv, reflectivity, otherradars
