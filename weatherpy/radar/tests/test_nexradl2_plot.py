@@ -38,6 +38,13 @@ def test_plot_velocity():
 
 
 @pytest.mark.mpl_image_compare(tolerance=20)
+def test_plot_differential_reflectivity():
+    fig = plt.figure()
+    _run_basic_test_with('DifferentialReflectivity')
+    return fig
+
+
+@pytest.mark.mpl_image_compare(tolerance=20)
 def test_plot_reflectivity_with_limiting_range_ring():
     fig = plt.figure()
     plotter = Nexrad2Plotter(radar_dataset)

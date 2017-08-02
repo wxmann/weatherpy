@@ -77,3 +77,6 @@ reflectivity.radarscope = 'RadarScope.pal'
 
 velocity = Repo()
 velocity.default = 'Enhanced-Velocity.pal'
+
+diff_reflectivity = Repo()
+diff_reflectivity.default = 'AWIPS-ZDR.pal'

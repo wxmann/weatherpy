@@ -97,8 +97,17 @@ class Nexrad2Plotter(DatasetContextManager):
     )}
     suffix_mapper['RadialVelocity'] = 'V'
 
+    ctable_mapper = {
+        'CorrelationCoefficient': None, #TODO: implement
+        'DifferentialPhase': None, #TODO: implement
+        'DifferentialReflectivity': ctables.diff_reflectivity.default,
+        'Reflectivity': ctables.reflectivity.nws_default,
+        'RadialVelocity': ctables.velocity.default,
+        'SpectrumWidth': None # TODO: implement
+    }
+
     def __init__(self, dataset, radartype=None, hires=True, sweep=0):
-        super().__init__(dataset)
+        super(Nexrad2Plotter, self).__init__(dataset)
 
         # declare radar-specific attributes
         self._radartype = None
@@ -168,12 +177,7 @@ class Nexrad2Plotter(DatasetContextManager):
         return mapper
 
     def default_ctable(self):
-        if self.radartype == 'Reflectivity':
-            return ctables.reflectivity.nws_default
-        elif self.radartype == 'RadialVelocity':
-            return ctables.velocity.default
-        else:
-            return None
+        return Nexrad2Plotter.ctable_mapper.get(self.radartype, None)
 
     def make_plot(self, mapper=None, colortable=None):
         if mapper is not None and isinstance(mapper.crs, ccrs.PlateCarree):
@@ -194,9 +198,8 @@ class Nexrad2Plotter(DatasetContextManager):
                                           cmap=colortable.cmap, norm=colortable.norm, zorder=0)
         return mapper, colortable
 
-    def range_ring(self, mapper, mi=None, draw_ring=True, color=None, limit=True, fit_to_ring=True):
-        if mi is None:
-            mi = DEFAULT_RANGE_MI
+    def range_ring(self, mapper, mi=DEFAULT_RANGE_MI, draw_ring=True,
+                   color=None, limit=True, fit_to_ring=True):
         ring = plotextras.ring_path(mi, self._stn_coordinates)
         if draw_ring:
             patch = patches.PathPatch(ring, edgecolor=color, facecolor='none', transform=ccrs.PlateCarree())
