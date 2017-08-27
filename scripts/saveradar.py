@@ -3,7 +3,8 @@ from datetime import timedelta, datetime
 
 from weatherpy import ctables
 from weatherpy import plotextras
-from weatherpy.nexrad2 import Nexrad2Request, radar2open
+from weatherpy.radar import radar2open
+from weatherpy.radar import Nexrad2Request
 
 
 def save_reflectivity(savedir, station, start, end, interval=None):

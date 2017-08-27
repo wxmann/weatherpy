@@ -75,5 +75,7 @@ reflectivity.avl = 'refl_avl.pal'
 reflectivity.nws_default = 'NWS_Default.pal'
 reflectivity.radarscope = 'RadarScope.pal'
 
-velocity = Repo()
-velocity.default = 'Enhanced-Velocity.pal'
+otherradars = Repo()
+otherradars.velocity = 'Enhanced-Velocity.pal'
+otherradars.diff_reflectivity = 'AWIPS-ZDR.pal'
+otherradars.corr_coeffic = 'AWIPS-CC.pal'

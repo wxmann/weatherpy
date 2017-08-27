@@ -1,13 +1,16 @@
 import matplotlib.pyplot as plt
 
+from weatherpy import ctables
 from weatherpy import plotextras
-from weatherpy.nexrad2 import Nexrad2Request, radar2open
+from weatherpy.radar import nexradl2
 
 
 def plot_latest_radar(station):
     text_color = '0.85'
-    with radar2open(Nexrad2Request(station)[-1]) as radarplot:
-        radarmap, ctable = radarplot.make_plot()
+    sel = nexradl2.Nexrad2Selection(station)
+    with sel.latest() as radarplot:
+        ctable = ctables.reflectivity.radarscope
+        radarmap, _ = radarplot.make_plot(colortable=ctable)
         radarplot.range_ring(radarmap, color=text_color)
         radarmap.draw_default()
         plotextras.top_right_inset(radarmap.ax, ctable, color=text_color)
@@ -19,4 +22,4 @@ def plot_latest_radar(station):
 
 
 if __name__ == '__main__':
-    plot_latest_radar('KFDR')
+    plot_latest_radar('KFSX')
