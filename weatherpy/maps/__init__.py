@@ -1,2 +1,2 @@
-from .mappers import LargeScaleMap, DetailedUSMap
+from .mappers import LargeScaleMap, DetailedUSMap, GSHHSMap
 from . import projections, extents
