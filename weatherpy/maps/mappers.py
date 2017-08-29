@@ -177,9 +177,14 @@ class DetailedUSMap(MapperBase):
 class GSHHSMap(MapperBase):
     def __init__(self, crs, bg_color=None):
         super(GSHHSMap, self).__init__(crs, bg_color)
+        self._scaleprops = properties.Properties(scale='i')
         self._borderprops = properties.Properties(strokewidth=1.0, strokecolor='gray', fill='none', alpha=1.0)
         self._countyprops = properties.Properties(strokewidth=0.5, strokecolor='gray', fill='none', alpha=1.0)
         self._hwyprops = properties.Properties(strokewidth=0.65, strokecolor='brown', fill='none', alpha=0.8)
+
+    @property
+    def scale_properties(self):
+        return self._scaleprops
 
     @property
     def border_properties(self):
@@ -193,17 +198,19 @@ class GSHHSMap(MapperBase):
     def highway_properties(self):
         return self._hwyprops
 
-    def draw_default(self, quality='i'):
-        self.draw_borders(quality)
+    def draw_default(self):
+        self.draw_coastlines()
+        self.draw_borders()
+        self.draw_states()
 
     def draw_default_detailed(self):
-        self.draw_borders()
+        self.draw_default()
         self.draw_counties()
         self.draw_highways()
 
-    def draw_borders(self, scale='i'):
-        # TODO: extract zoom to properties
-        logger.info("[MAP] Begin drawing borders")
+    def draw_coastlines(self):
+        logger.info("[MAP] Begin drawing coastlines")
+        scale = self.scale_properties.scale
 
         coastlines = cfeat.GSHHSFeature(scale, levels=[1])
         self.ax.add_feature(coastlines, edgecolor=self.border_properties.strokecolor,
@@ -211,8 +218,23 @@ class GSHHSMap(MapperBase):
                             facecolor='none',
                             alpha=self.border_properties.alpha)
 
+    def draw_borders(self):
+        logger.info("[MAP] Begin drawing borders")
+        scale = self.scale_properties.scale
+
         borders = self._wdbii_shp(scale, level=1).geometries()
         self.ax.add_geometries(borders, ccrs.PlateCarree(),
+                               edgecolor=self.border_properties.strokecolor,
+                               facecolor='none',
+                               linewidth=self.border_properties.strokewidth,
+                               alpha=self.border_properties.alpha)
+
+    def draw_states(self):
+        logger.info("[MAP] Begin drawing states")
+        scale = self.scale_properties.scale
+
+        states = self._wdbii_shp(scale, level=2).geometries()
+        self.ax.add_geometries(states, ccrs.PlateCarree(),
                                edgecolor=self.border_properties.strokecolor,
                                facecolor='none',
                                linewidth=self.border_properties.strokewidth,
