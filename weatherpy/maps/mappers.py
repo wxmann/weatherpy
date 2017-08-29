@@ -193,35 +193,59 @@ class GSHHSMap(MapperBase):
     def highway_properties(self):
         return self._hwyprops
 
-    def draw_default(self):
-        logger.info("[MAP] Begin drawing default map")
-        feat = cfeat.GSHHSFeature('i', levels=[1, 2, 3])
-        self.ax.add_feature(feat, edgecolor=self.border_properties.strokecolor,
+    def draw_default(self, quality='i'):
+        self.draw_borders(quality)
+
+    def draw_default_detailed(self):
+        self.draw_borders()
+        self.draw_counties()
+        self.draw_highways()
+
+    def draw_borders(self, scale='i'):
+        # TODO: extract zoom to properties
+        logger.info("[MAP] Begin drawing borders")
+
+        coastlines = cfeat.GSHHSFeature(scale, levels=[1])
+        self.ax.add_feature(coastlines, edgecolor=self.border_properties.strokecolor,
                             linewidth=self.border_properties.strokewidth,
+                            facecolor='none',
                             alpha=self.border_properties.alpha)
-        logger.info("[MAP] End drawing default map")
+
+        borders = self._wdbii_shp(scale, level=1).geometries()
+        self.ax.add_geometries(borders, ccrs.PlateCarree(),
+                               edgecolor=self.border_properties.strokecolor,
+                               facecolor='none',
+                               linewidth=self.border_properties.strokewidth,
+                               alpha=self.border_properties.alpha)
 
     def draw_counties(self):
         logger.info("[MAP] Begin drawing counties")
-        self._add_shp_geoms('c_11au16', edgecolor=self.county_properties.strokecolor,
-                            linewidth=self.county_properties.strokewidth,
-                            facecolor=self.county_properties.fill,
-                            alpha=self.county_properties.alpha)
+        counties = self._awips_shp('c_11au16').geometries()
+        self.ax.add_geometries(counties, ccrs.PlateCarree(),
+                               edgecolor=self.county_properties.strokecolor,
+                               linewidth=self.county_properties.strokewidth,
+                               facecolor='none',
+                               alpha=self.county_properties.alpha)
 
     def draw_highways(self):
         logger.info("[MAP] Begin drawing highways")
-        self._add_shp_geoms('hways', edgecolor=self.highway_properties.strokecolor,
-                            linewidth=self.highway_properties.strokewidth,
-                            facecolor=self.highway_properties.fill,
-                            alpha=self.highway_properties.alpha)
+        hwys = self._awips_shp('hways').geometries()
+        self.ax.add_geometries(hwys, ccrs.PlateCarree(),
+                               edgecolor=self.highway_properties.strokecolor,
+                               linewidth=self.highway_properties.strokewidth,
+                               facecolor='none',
+                               alpha=self.highway_properties.alpha)
 
-    def _add_shp_geoms(self, filename, crs=None, **kwargs):
-        if crs is None:
-            crs = ccrs.PlateCarree()
-        self.ax.add_geometries(self._shpfile(filename).geometries(), crs, **kwargs)
-
-    def _shpfile(self, filename):
+    def _awips_shp(self, filename):
         shpfile_dir = filename
         filename = filename + '.shp'
         file = os.path.join(config.SHAPEFILE_DIR, 'awips', shpfile_dir, filename)
+        return cartopy.io.shapereader.Reader(file)
+
+    def _ghssh_shp(self, scale, level):
+        file = os.path.join(config.SHAPEFILE_DIR, 'gshhs', 'GSHHS_{}_L{}.shp'.format(scale, level))
+        return cartopy.io.shapereader.Reader(file)
+
+    def _wdbii_shp(self, scale, level, type='border'):
+        file = os.path.join(config.SHAPEFILE_DIR, 'gshhs', 'WDBII_{}_{}_L{}.shp'.format(type, scale, level))
         return cartopy.io.shapereader.Reader(file)
