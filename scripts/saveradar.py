@@ -1,24 +1,20 @@
 import os
-from datetime import timedelta, datetime
+from datetime import datetime
 
 from weatherpy import ctables
 from weatherpy import plotextras
-from weatherpy.radar import radar2open
-from weatherpy.radar import Nexrad2Request
+from weatherpy.radar import nexradl2
 
 
-def save_reflectivity(savedir, station, start, end, interval=None):
+def save_reflectivity(savedir, station, start, end):
     ctable = ctables.reflectivity.radarscope
     text_color = '0.85'
 
-    if interval is None:
-        radars = Nexrad2Request(station)[start: end]
-    else:
-        radars = Nexrad2Request(station)[start: end: timedelta(minutes=interval)]
+    radars = nexradl2.selectfor(station).between(start, end)
 
-    for radar_url in radars:
+    for radarplt in radars:
         with plotextras.figcontext(figsize=(12, 12)) as fig:
-            with radar2open(radar_url) as radarplt:
+            with radarplt:
                 radarmap, _ = radarplt.make_plot(colortable=ctable)
                 radarplt.range_ring(radarmap, color=text_color)
                 radarmap.draw_default()
@@ -37,4 +33,4 @@ if __name__ == '__main__':
     saveloc = r'your/location/here' + '/{}'.format(station)
     start = datetime(2017, 4, 2, 21, 30)
     end = datetime(2017, 4, 2, 22, 30)
-    save_reflectivity(saveloc, station, start, end, interval=None)
+    save_reflectivity(saveloc, station, start, end)

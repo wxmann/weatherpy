@@ -6,7 +6,7 @@ from weatherpy.radar import nexradl2
 
 def plot_latest_radar(station):
     text_color = '0.85'
-    sel = nexradl2.Nexrad2Selection(station)
+    sel = nexradl2.selectfor(station)
     with sel.latest() as radarplot:
         radarplot.set_radar('DifferentialReflectivity')
         radarmap, ctable = radarplot.make_plot()

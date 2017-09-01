@@ -12,6 +12,10 @@ from weatherpy.thredds import DatasetAccessException, dap_plotter, DatasetContex
 from weatherpy.units import Scale
 
 
+def selectfor(station):
+    return Nexrad2Selection(station)
+
+
 def get_radar_server(host, dataset):
     full_datasets = get_radarserver_datasets(host)
     if dataset not in full_datasets:
