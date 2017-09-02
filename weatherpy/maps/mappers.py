@@ -242,7 +242,7 @@ class GSHHSMap(MapperBase):
 
     def draw_counties(self):
         logger.info("[MAP] Begin drawing counties")
-        counties = self._awips_shp('c_11au16').geometries()
+        counties = self._awips_shp('UScounties').geometries()
         self.ax.add_geometries(counties, ccrs.PlateCarree(),
                                edgecolor=self.county_properties.strokecolor,
                                linewidth=self.county_properties.strokewidth,
@@ -261,7 +261,7 @@ class GSHHSMap(MapperBase):
     def _awips_shp(self, filename):
         shpfile_dir = filename
         filename = filename + '.shp'
-        file = os.path.join(config.SHAPEFILE_DIR, 'awips', shpfile_dir, filename)
+        file = os.path.join(config.SHAPEFILE_DIR, shpfile_dir, filename)
         return cartopy.io.shapereader.Reader(file)
 
     def _ghssh_shp(self, scale, level):

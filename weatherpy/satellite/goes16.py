@@ -34,7 +34,6 @@ def puertorico(channel):
 
 
 class Goes16Selection(ThreddsSatelliteSelection):
-
     @staticmethod
     def _default_action(ds):
         return dap_plotter(ds, Goes16Plotter)
@@ -108,30 +107,34 @@ class Goes16Plotter(DatasetContextManager):
             globe = ccrs.Globe(ellipse='sphere',
                                semimajor_axis=geog.semi_major,
                                semiminor_axis=geog.semi_minor)
-            self._crs = ccrs.LambertConformal(central_latitude=geog.latitude_of_projection_origin,
-                                              central_longitude=geog.longitude_of_central_meridian,
-                                              standard_parallels=[geog.standard_parallel],
-                                              false_easting=geog.false_easting,
-                                              false_northing=geog.false_northing,
-                                              globe=globe)
+            self._transform_crs = ccrs.LambertConformal(central_latitude=geog.latitude_of_projection_origin,
+                                                        central_longitude=geog.longitude_of_central_meridian,
+                                                        standard_parallels=[geog.standard_parallel],
+                                                        false_easting=geog.false_easting,
+                                                        false_northing=geog.false_northing,
+                                                        globe=globe)
         elif proj == 'fixedgrid_projection':
             globe = ccrs.Globe(semimajor_axis=geog.semi_major,
                                semiminor_axis=geog.semi_minor)
-            self._crs = ccrs.NearsidePerspective(central_latitude=geog.latitude_of_projection_origin,
-                                                 central_longitude=geog.longitude_of_projection_origin,
-                                                 satellite_height=geog.perspective_point_height,
-                                                 globe=globe)
+            self._transform_crs = ccrs.NearsidePerspective(central_latitude=geog.latitude_of_projection_origin,
+                                                           central_longitude=geog.longitude_of_projection_origin,
+                                                           satellite_height=geog.perspective_point_height,
+                                                           globe=globe)
         elif proj == 'mercator_projection':
             globe = ccrs.Globe(ellipse='sphere',
                                semimajor_axis=geog.semi_major,
                                semiminor_axis=geog.semi_minor)
-            self._crs = ccrs.Mercator(central_longitude=geog.longitude_of_projection_origin,
-                                      latitude_true_scale=geog.standard_parallel,
-                                      globe=globe)
+            self._transform_crs = ccrs.Mercator(central_longitude=geog.longitude_of_projection_origin,
+                                                latitude_true_scale=geog.standard_parallel,
+                                                globe=globe)
         else:
             raise NotImplementedError("Projection: {} not supported at this time".format(proj))
 
         logger.info("[GOES SAT] Finish processing satellite metadata")
+
+    @property
+    def channel(self):
+        return self._channel
 
     @property
     def timestamp(self):
@@ -143,15 +146,30 @@ class Goes16Plotter(DatasetContextManager):
             return channel_sattype_map[self._channel]
         except KeyError:
             raise ValueError("Invalid satellite type")
-        
+
     @property
     def position(self):
         return self._position
 
+    @property
+    def transform_crs(self):
+        return self._transform_crs
+
     def default_map(self, **kwargs):
         if 'crs' in kwargs:
             kwargs.pop('crs')
-        return maps.LargeScaleMap(self._crs, **kwargs)
+
+        default_map = maps.GSHHSMap(crs=ccrs.NearsidePerspective(self.position.longitude,
+                                                                 self.position.latitude),
+                                    bg_color='white')
+
+        default_map.border_properties.strokecolor = 'black'
+        default_map.border_properties.alpha = 0.4
+        default_map.county_properties.strokecolor = 'black'
+        default_map.county_properties.alpha = 0.1
+        default_map.highway_properties.strokecolor = 'red'
+        default_map.highway_properties.alpha = 0.25
+        return default_map
 
     def default_ctable(self):
         if self.sattype in ('NEAR_IR', 'VIS'):
@@ -192,7 +210,7 @@ class Goes16Plotter(DatasetContextManager):
         use_pcolormesh = plot_limited
 
         if plot_limited:
-            xmask, ymask, data_extnt = mask_outside_extent(mapper.extent, mapper.crs, x, y, self._crs)
+            xmask, ymask, data_extnt = mask_outside_extent(mapper.extent, mapper.crs, x, y, self._transform_crs)
             xmasked = x[xmask]
             ymasked = y[ymask]
 
@@ -235,13 +253,15 @@ class Goes16Plotter(DatasetContextManager):
         logger.info("[GOES SAT] Finish processing satellite pixel data")
 
         if use_pcolormesh:
+            logger.debug('Using pcolormesh')
             mapper.ax.pcolormesh(x, y, plotdata,
-                                 transform=self._crs,
+                                 transform=self._transform_crs,
                                  cmap=colortable.cmap, norm=colortable.norm)
         else:
+            logger.debug('Using imshow')
             lim = (x.min(), x.max(), y.min(), y.max())
             mapper.ax.imshow(plotdata, extent=lim, origin='upper',
-                             transform=self._crs,
+                             transform=self._transform_crs,
                              cmap=colortable.cmap, norm=colortable.norm)
         return mapper, colortable
 
