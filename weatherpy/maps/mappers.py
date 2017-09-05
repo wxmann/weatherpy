@@ -2,12 +2,15 @@ import os
 import warnings
 
 import cartopy
+import math
 from cartopy import crs as ccrs
 from cartopy import feature as cfeat
 from matplotlib import pyplot as plt
+import numpy as np
+import shapely.geometry as sgeom
 
 import config
-from weatherpy.internal import logger
+from weatherpy.internal import logger, haversine_distance
 from weatherpy.internal.pyhelpers import coalesce_kwargs
 from weatherpy.maps import properties
 from weatherpy.maps.extents import geobbox
@@ -199,14 +202,18 @@ class GSHHSMap(MapperBase):
         return self._hwyprops
 
     def draw_default(self):
-        self.draw_coastlines()
-        self.draw_borders()
-        self.draw_states()
+        self._draw_default_with_lake_threshold(300)
 
     def draw_default_detailed(self):
-        self.draw_default()
+        self._draw_default_with_lake_threshold(80)
         self.draw_counties()
         self.draw_highways()
+
+    def _draw_default_with_lake_threshold(self, threshold):
+        self.draw_coastlines()
+        self.draw_lakes(threshold)
+        self.draw_borders()
+        self.draw_states()
 
     def draw_coastlines(self):
         logger.info("[MAP] Begin drawing coastlines")
@@ -218,11 +225,23 @@ class GSHHSMap(MapperBase):
                             facecolor='none',
                             alpha=self.border_properties.alpha)
 
+    def draw_lakes(self, threshold=300):
+        logger.info("[MAP] Begin drawing lakes")
+        scale = self.scale_properties.scale
+
+        lakes = (rec.geometry for rec in self._ghssh_shp(scale, level=2).records()
+                 if _size(rec) > threshold)
+        self.ax.add_geometries(lakes, ccrs.PlateCarree(),
+                               edgecolor=self.border_properties.strokecolor,
+                               linewidth=self.border_properties.strokewidth,
+                               facecolor='none',
+                               alpha=self.border_properties.alpha)
+
     def draw_borders(self):
         logger.info("[MAP] Begin drawing borders")
         scale = self.scale_properties.scale
 
-        borders = self._wdbii_shp(scale, level=1).geometries()
+        borders = (read_line_geometries(rec) for rec in self._wdbii_shp(scale, level=1).records())
         self.ax.add_geometries(borders, ccrs.PlateCarree(),
                                edgecolor=self.border_properties.strokecolor,
                                facecolor='none',
@@ -233,7 +252,7 @@ class GSHHSMap(MapperBase):
         logger.info("[MAP] Begin drawing states")
         scale = self.scale_properties.scale
 
-        states = self._wdbii_shp(scale, level=2).geometries()
+        states = (read_line_geometries(rec) for rec in self._wdbii_shp(scale, level=2).records())
         self.ax.add_geometries(states, ccrs.PlateCarree(),
                                edgecolor=self.border_properties.strokecolor,
                                facecolor='none',
@@ -242,7 +261,7 @@ class GSHHSMap(MapperBase):
 
     def draw_counties(self):
         logger.info("[MAP] Begin drawing counties")
-        counties = self._awips_shp('UScounties').geometries()
+        counties = self._generic_shp('UScounties').geometries()
         self.ax.add_geometries(counties, ccrs.PlateCarree(),
                                edgecolor=self.county_properties.strokecolor,
                                linewidth=self.county_properties.strokewidth,
@@ -251,14 +270,14 @@ class GSHHSMap(MapperBase):
 
     def draw_highways(self):
         logger.info("[MAP] Begin drawing highways")
-        hwys = self._awips_shp('hways').geometries()
+        hwys = self._generic_shp('hways').geometries()
         self.ax.add_geometries(hwys, ccrs.PlateCarree(),
                                edgecolor=self.highway_properties.strokecolor,
                                linewidth=self.highway_properties.strokewidth,
                                facecolor='none',
                                alpha=self.highway_properties.alpha)
 
-    def _awips_shp(self, filename):
+    def _generic_shp(self, filename):
         shpfile_dir = filename
         filename = filename + '.shp'
         file = os.path.join(config.SHAPEFILE_DIR, shpfile_dir, filename)
@@ -269,5 +288,48 @@ class GSHHSMap(MapperBase):
         return cartopy.io.shapereader.Reader(file)
 
     def _wdbii_shp(self, scale, level, type='border'):
-        file = os.path.join(config.SHAPEFILE_DIR, 'gshhs', 'WDBII_{}_{}_L{}.shp'.format(type, scale, level))
+        file = os.path.join(config.SHAPEFILE_DIR, 'gshhs', 'WDBII_{}_{}_L{}.prj'.format(type, scale, level))
         return cartopy.io.shapereader.Reader(file)
+
+
+def read_line_geometries(shprec, threshold=100):
+    size = _size(shprec)
+    geom = shprec.geometry
+
+    if size < threshold:
+        return geom
+
+    if len(geom) != 1:
+        # the GSHHS shapefile only has one geometry per record,
+        # so we punt here when in the case it's not
+        return geom
+
+    only_geom_in_group = geom[0]
+    geom_coords = only_geom_in_group.coords
+    result_geometry = []
+    for i, current_coord in enumerate(geom_coords):
+        if i == len(geom_coords) - 1:
+            result_geometry.append(current_coord)
+        else:
+            next_coord = geom_coords[i + 1]
+            lon0, lat0 = current_coord
+            lon1, lat1 = next_coord
+            dist = haversine_distance(lon0, lat0, lon1, lat1)
+
+            if dist < threshold:
+                result_geometry.append(current_coord)
+            else:
+                n = int(math.ceil(dist / threshold)) + 1
+                inset_xs = np.linspace(lon0, lon1, n)
+                inset_ys = np.linspace(lat0, lat1, n)
+
+                for inset_x, inset_y in zip(inset_xs, inset_ys):
+                    result_geometry.append((inset_x, inset_y))
+
+    line = sgeom.LineString(result_geometry)
+    return sgeom.MultiLineString([line])
+
+
+def _size(shprec):
+    lon0, lat0, lon1, lat1 = shprec.bounds
+    return haversine_distance(lon0, lat0, lon1, lat1)

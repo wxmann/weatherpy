@@ -27,6 +27,21 @@ def destination_point(lon, lat, distance, bearing, R_earth=6378.1,
     return math.degrees(lon_result_rad), math.degrees(lat_result_rad)
 
 
+def haversine_distance(lon0, lat0, lon1, lat1, R_earth=6378.1):
+    lon0 = math.radians(lon0)
+    lat0 = math.radians(lat0)
+    lon1 = math.radians(lon1)
+    lat1 = math.radians(lat1)
+
+    dlon = lon1 - lon0
+    dlat = lat1 - lat0
+
+    a = math.sin(dlat / 2) ** 2 + math.cos(lat0) * math.cos(lat1) * math.sin(dlon / 2) ** 2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+
+    return R_earth * c
+
+
 def bbox_from_coord(coord_mat):
     lons = coord_mat[:,0]
     lats = coord_mat[:,1]
