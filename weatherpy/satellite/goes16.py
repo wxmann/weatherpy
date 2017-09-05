@@ -6,6 +6,7 @@ from siphon.catalog import TDSCatalog
 
 from weatherpy import ctables, maps, units
 from weatherpy.internal import mask_outside_extent, logger
+from weatherpy.maps import extents
 from weatherpy.satellite._common import ThreddsSatelliteSelection, satpos
 from weatherpy.thredds import DatasetContextManager, dap_plotter
 from weatherpy.units import Scale, UnitsException, arrayconvert
@@ -17,11 +18,11 @@ def conus(channel):
     return Goes16Selection('CONUS', channel)
 
 
-def sector1(channel):
+def meso1(channel):
     return Goes16Selection('Mesoscale-1', channel)
 
 
-def sector2(channel):
+def meso2(channel):
     return Goes16Selection('Mesoscale-2', channel)
 
 
@@ -98,6 +99,11 @@ class Goes16Plotter(DatasetContextManager):
                                 longitude=self.dataset.satellite_longitude,
                                 altitude=self.dataset.satellite_altitude)
 
+        self._center = satpos(latitude=self.dataset.product_center_latitude,
+                              longitude=self.dataset.product_center_longitude,
+                              altitude=None)
+        self._is_meso = 'MESO' in self.dataset.product_name
+
         self._scmi = self.dataset.variables['Sectorized_CMI']
 
         # geographical projection data
@@ -159,9 +165,15 @@ class Goes16Plotter(DatasetContextManager):
         if 'crs' in kwargs:
             kwargs.pop('crs')
 
+        # TODO: figure out bg_color and handle incorrectly masked regions
+        # in visible imagery
         default_map = maps.GSHHSMap(crs=ccrs.NearsidePerspective(self.position.longitude,
                                                                  self.position.latitude),
-                                    bg_color='white')
+                                    bg_color='black')
+
+        if self._is_meso:
+            default_map.extent = extents.zoom((self._center.latitude, self._center.longitude),
+                                              km=600)
 
         default_map.border_properties.strokecolor = 'black'
         default_map.border_properties.alpha = 0.4
