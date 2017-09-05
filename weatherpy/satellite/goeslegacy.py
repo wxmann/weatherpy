@@ -143,7 +143,7 @@ class GoesLegacyPlotter(DatasetContextManager):
             return pix
 
     def default_map(self):
-        return maps.LargeScaleMap(self._crs)
+        return maps.GSHHSMap(self._crs)
 
     def default_ctable(self):
         if self._sattype == 'VIS':

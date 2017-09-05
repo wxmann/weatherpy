@@ -1,12 +1,15 @@
 import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
 
+from weatherpy import maps
 from weatherpy.maps import extents
 from weatherpy.satellite import goes16
 
 if __name__ == '__main__':
     sel = goes16.conus(channel=14)
-    plotter = sel.latest()
-    mapper, _ = plotter.make_plot(extent=extents.conus)
-    mapper.properties.strokecolor = 'yellow'
-    mapper.draw_default()
-    plt.show()
+
+    with sel.latest() as plotter:
+        bg_map = maps.GSHHSMap(crs=ccrs.LambertConformal())
+        plotter.make_plot(mapper=bg_map, extent=extents.conus)
+        bg_map.draw_default()
+        plt.show()

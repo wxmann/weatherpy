@@ -179,8 +179,9 @@ class Nexrad2Plotter(DatasetContextManager):
 
     def default_map(self):
         crs = maps.projections.lambertconformal(lon0=self._stn_coordinates[0], lat0=self._stn_coordinates[1])
-        mapper = maps.DetailedUSMap(crs, bg_color='black')
+        mapper = maps.GSHHSMap(crs, bg_color='black')
         mapper.extent = self._extent
+        mapper.scale_properties.scale = 'h'
         return mapper
 
     def default_ctable(self):

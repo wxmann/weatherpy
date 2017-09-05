@@ -10,7 +10,7 @@ def plot_latest_radar(station):
     with sel.latest() as radarplot:
         refl_panel = radarplot.default_map()
         refl_panel.initialize_drawing(subplot=121)
-        refl_panel.draw_default()
+        refl_panel.draw_default_detailed()
 
         radarplot.set_radar('Reflectivity')
         _, ctable = radarplot.make_plot(refl_panel)
@@ -20,7 +20,7 @@ def plot_latest_radar(station):
 
         vel_panel = radarplot.default_map()
         vel_panel.initialize_drawing(subplot=122)
-        vel_panel.draw_default()
+        vel_panel.draw_default_detailed()
 
         radarplot.set_radar('RadialVelocity')
         _, ctable = radarplot.make_plot(vel_panel)
