@@ -19,7 +19,7 @@ def latest_east_coast_wv():
     with sel.latest() as plotter:
         colortable = ctables.wv.accuwx
         plotter.make_plot(mapper=mapper, colortable=colortable)
-        plotextras.top_right_inset(mapper.ax, colortable, color=text_color)
+        plotextras.colorbar_inset(mapper.ax, colortable, color=text_color)
         title_text = 'GOES-E {} {}'.format(plotter.sattype, plotter.timestamp.strftime('%Y %b %d %H:%M UTC'))
         plotextras.bottom_right_stamp(title_text, mapper.ax, fontsize=16, color=text_color, weight='bold',
                                       path_effects=[patheffects.withStroke(linewidth=2, foreground="white")])

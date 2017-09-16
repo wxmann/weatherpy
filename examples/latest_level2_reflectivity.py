@@ -13,7 +13,7 @@ def plot_latest_radar(station):
         radarmap, _ = radarplot.make_plot(colortable=ctable)
         radarplot.range_ring(radarmap, color=text_color)
         radarmap.draw_default_detailed()
-        plotextras.top_right_inset(radarmap.ax, ctable, color=text_color)
+        plotextras.colorbar_inset(radarmap.ax, ctable, color='white')
 
         title_text = '{} 0.5 deg Reflectivity, {}'.format(station,
                                                           radarplot.timestamp.strftime('%Y %b %d %H:%M UTC'))

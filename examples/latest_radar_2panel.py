@@ -15,7 +15,7 @@ def plot_latest_radar(station):
         radarplot.set_radar('Reflectivity')
         _, ctable = radarplot.make_plot(refl_panel)
         radarplot.range_ring(refl_panel, color=text_color)
-        plotextras.top_right_inset(refl_panel.ax, ctable, color=text_color)
+        plotextras.colorbar_inset(refl_panel.ax, ctable, color=text_color)
         plotextras.bottom_right_stamp('Current Reflectivity', refl_panel.ax, color=text_color)
 
         vel_panel = radarplot.default_map()
@@ -25,7 +25,7 @@ def plot_latest_radar(station):
         radarplot.set_radar('RadialVelocity')
         _, ctable = radarplot.make_plot(vel_panel)
         radarplot.range_ring(vel_panel, color=text_color)
-        plotextras.top_right_inset(vel_panel.ax, ctable, color=text_color)
+        plotextras.colorbar_inset(vel_panel.ax, ctable, color=text_color)
         plotextras.bottom_right_stamp('Current Velocity', vel_panel.ax, color=text_color)
 
         plt.gcf().subplots_adjust(wspace=0, hspace=0)
