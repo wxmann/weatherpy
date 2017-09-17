@@ -2,6 +2,7 @@ import re
 from datetime import datetime, timedelta, date
 
 import cartopy.crs as ccrs
+import numpy as np
 from siphon.catalog import TDSCatalog
 
 from weatherpy import ctables, maps, units
@@ -165,11 +166,13 @@ class Goes16Plotter(DatasetContextManager):
         if 'crs' in kwargs:
             kwargs.pop('crs')
 
+        kwargs.setdefault('bg_color', 'black')
+
         # TODO: figure out bg_color and handle incorrectly masked regions
         # in visible imagery
         default_map = maps.GSHHSMap(crs=ccrs.NearsidePerspective(self.position.longitude,
                                                                  self.position.latitude),
-                                    bg_color='black')
+                                    **kwargs)
 
         if self._is_meso:
             default_map.extent = extents.zoom((self._center.latitude, self._center.longitude),
@@ -193,7 +196,8 @@ class Goes16Plotter(DatasetContextManager):
         else:
             return None
 
-    def make_plot(self, mapper=None, colortable=None, scale=(), strict=True, extent=None):
+    def make_plot(self, mapper=None, colortable=None, scale=(), strict=True, extent=None,
+                  fix_clipped=True):
         if colortable is None:
             colortable = self.default_ctable()
 
@@ -229,7 +233,6 @@ class Goes16Plotter(DatasetContextManager):
             if not xmasked.size or not ymasked.size:
                 # we are out of bounds of the satellite data, fake an empty plot area
                 # as we can't plot-limit with an empty coordinate array
-                import numpy as np
                 plotdata = np.empty(self._scmi.shape)
                 use_pcolormesh = False
             else:
@@ -239,6 +242,13 @@ class Goes16Plotter(DatasetContextManager):
                 use_pcolormesh = not data_extnt.is_outside(mapper.extent)
         else:
             plotdata = self._scmi[:]
+
+        # apply gamma correction?
+        # plotdata = np.sqrt(plotdata)
+
+        if self.sattype == 'VIS' and fix_clipped:
+            # hack for fixing clipping highlights that default to fill value of 0
+            plotdata[plotdata == self._scmi._FillValue] = 1.0
 
         try:
             data_units = units.get(self._scmi.units)
@@ -271,9 +281,11 @@ class Goes16Plotter(DatasetContextManager):
                                  cmap=colortable.cmap, norm=colortable.norm)
         else:
             logger.debug('Using imshow')
+            interp = 'bilinear' if self.sattype == 'VIS' else 'none'
             lim = (x.min(), x.max(), y.min(), y.max())
             mapper.ax.imshow(plotdata, extent=lim, origin='upper',
                              transform=self._transform_crs,
+                             interpolation=interp,
                              cmap=colortable.cmap, norm=colortable.norm)
         return mapper, colortable
 
