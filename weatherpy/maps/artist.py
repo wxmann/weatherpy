@@ -13,9 +13,10 @@ from weatherpy.internal import logger, haversine_distance
 from weatherpy.maps import properties
 
 
-class MapArtist(object):
-    def __init__(self, crs, extent=None, backend=None):
-        self._crs = crs
+class Mapper(object):
+    def __init__(self, crs, extent=None, backend=None, bg=None):
+        self.crs = crs
+        self.bg = bg
         self._extent = extent
 
         if backend is None:
@@ -28,10 +29,6 @@ class MapArtist(object):
             raise ValueError("Backend must be an instance of `MappingBackend`")
         else:
             self.backend = backend
-
-    @property
-    def crs(self):
-        return self._crs
 
     @property
     def extent(self):
@@ -49,7 +46,7 @@ class MapArtist(object):
         except AttributeError:
             raise ValueError("Invalid layer: {}".format(layer))
 
-    def draw(self, layers=None, subplot=None, fig=None, detailed=False, bg=None):
+    def get_ax(self, subplot=None, fig=None):
         if subplot is not None:
             if fig is None:
                 fig = plt.gcf()
@@ -61,17 +58,22 @@ class MapArtist(object):
 
         if self._extent is not None:
             ax.set_extent(self._extent)
+        return ax
+
+    def draw(self, ax=None, layers=None, detailed=False, subplot=None, fig=None):
+        if ax is None:
+            ax = self.get_ax(subplot, fig)
 
         if layers is None:
             layers = ['coastlines', 'borders', 'states', 'lakes']
             if detailed:
                 layers += ['counties', 'roads']
 
-        for layer in layers:
+        for layer in set(layers):
             self._backend_draw(layer, ax)
 
-        if bg is not None:
-            ax.background_patch.set_facecolor(bg)
+        if self.bg is not None:
+            ax.background_patch.set_facecolor(self.bg)
 
         return ax
 
