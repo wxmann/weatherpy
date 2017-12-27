@@ -19,12 +19,11 @@ class MapArtist(object):
         self._extent = extent
 
         if backend is None:
-            scale = properties.Properties(scale='i')
-            borders = properties.Properties(strokewidth=1.0, strokecolor='gray', fill='none', alpha=1.0)
-            counties = properties.Properties(strokewidth=0.5, strokecolor='gray', fill='none', alpha=1.0)
-            roads = properties.Properties(strokewidth=0.65, strokecolor='brown', fill='none', alpha=0.8)
+            borders = properties.Stroke(width=1.0, color='gray', alpha=1.0)
+            counties = properties.Stroke(width=0.5, color='gray', alpha=1.0)
+            roads = properties.Stroke(width=0.65, color='brown', alpha=0.8)
 
-            self.backend = GSHHSCartopy(scale, borders, counties, roads)
+            self.backend = GSHHSCartopy(borders, counties, roads)
         elif not isinstance(backend, MappingBackend):
             raise ValueError("Backend must be an instance of `MappingBackend`")
         else:
@@ -104,73 +103,69 @@ class MappingBackend(object):
 
 
 class GSHHSCartopy(MappingBackend):
-    def __init__(self, scale_properties, border_properties, county_properties, highway_properties):
-        self.scale_properties = scale_properties
-        self.border_properties = border_properties
-        self.county_properties = county_properties
-        self.highway_properties = highway_properties
+    def __init__(self, borderparams, countyparams, roadparams):
+        self.scale = 'i'
+        self.borderparams = borderparams
+        self.countyparams = countyparams
+        self.roadparams = roadparams
 
     def draw_coastlines(self, ax):
         logger.info("[MAP] Begin drawing coastlines")
-        scale = self.scale_properties.scale
 
-        coastlines = cfeat.GSHHSFeature(scale, levels=[1])
-        ax.add_feature(coastlines, edgecolor=self.border_properties.strokecolor,
-                       linewidth=self.border_properties.strokewidth,
+        coastlines = cfeat.GSHHSFeature(self.scale, levels=[1])
+        ax.add_feature(coastlines, edgecolor=self.borderparams.color,
+                       linewidth=self.borderparams.width,
                        facecolor='none',
-                       alpha=self.border_properties.alpha)
+                       alpha=self.borderparams.alpha)
 
     def draw_lakes(self, ax, threshold=300):
         logger.info("[MAP] Begin drawing lakes")
-        scale = self.scale_properties.scale
 
-        lakes = (rec.geometry for rec in self._ghssh_shp(scale, level=2).records()
+        lakes = (rec.geometry for rec in self._ghssh_shp(self.scale, level=2).records()
                  if _size(rec) > threshold)
         ax.add_geometries(lakes, ccrs.PlateCarree(),
-                          edgecolor=self.border_properties.strokecolor,
-                          linewidth=self.border_properties.strokewidth,
+                          edgecolor=self.borderparams.color,
+                          linewidth=self.borderparams.width,
                           facecolor='none',
-                          alpha=self.border_properties.alpha)
+                          alpha=self.borderparams.alpha)
 
     def draw_borders(self, ax):
         logger.info("[MAP] Begin drawing borders")
-        scale = self.scale_properties.scale
 
-        borders = (read_line_geometries(rec) for rec in self._wdbii_shp(scale, level=1).records())
+        borders = (read_line_geometries(rec) for rec in self._wdbii_shp(self.scale, level=1).records())
         ax.add_geometries(borders, ccrs.PlateCarree(),
-                          edgecolor=self.border_properties.strokecolor,
+                          edgecolor=self.borderparams.color,
                           facecolor='none',
-                          linewidth=self.border_properties.strokewidth,
-                          alpha=self.border_properties.alpha)
+                          linewidth=self.borderparams.width,
+                          alpha=self.borderparams.alpha)
 
     def draw_states(self, ax):
         logger.info("[MAP] Begin drawing states")
-        scale = self.scale_properties.scale
 
-        states = (read_line_geometries(rec) for rec in self._wdbii_shp(scale, level=2).records())
+        states = (read_line_geometries(rec) for rec in self._wdbii_shp(self.scale, level=2).records())
         ax.add_geometries(states, ccrs.PlateCarree(),
-                          edgecolor=self.border_properties.strokecolor,
+                          edgecolor=self.borderparams.color,
                           facecolor='none',
-                          linewidth=self.border_properties.strokewidth,
-                          alpha=self.border_properties.alpha)
+                          linewidth=self.borderparams.width,
+                          alpha=self.borderparams.alpha)
 
     def draw_counties(self, ax):
         logger.info("[MAP] Begin drawing counties")
         counties = self._generic_shp('UScounties').geometries()
         ax.add_geometries(counties, ccrs.PlateCarree(),
-                          edgecolor=self.county_properties.strokecolor,
-                          linewidth=self.county_properties.strokewidth,
+                          edgecolor=self.countyparams.color,
+                          linewidth=self.countyparams.width,
                           facecolor='none',
-                          alpha=self.county_properties.alpha)
+                          alpha=self.countyparams.alpha)
 
     def draw_roads(self, ax):
         logger.info("[MAP] Begin drawing highways")
         hwys = self._generic_shp('hways').geometries()
         ax.add_geometries(hwys, ccrs.PlateCarree(),
-                          edgecolor=self.highway_properties.strokecolor,
-                          linewidth=self.highway_properties.strokewidth,
+                          edgecolor=self.roadparams.color,
+                          linewidth=self.roadparams.width,
                           facecolor='none',
-                          alpha=self.highway_properties.alpha)
+                          alpha=self.roadparams.alpha)
 
     def draw_cities(self, ax):
         raise NotImplementedError("This backend does not support cities")

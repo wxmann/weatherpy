@@ -36,14 +36,14 @@ def test_draw_switching_properties():
     crs = ccrs.Mercator()
 
     mapper = artist.MapArtist(crs, extent=(-127.5, -112, 30, 43))
-    mapper.backend.border_properties.strokecolor = 'blue'
+    mapper.backend.borderparams.color = 'blue'
     mapper.draw(subplot=311, fig=fig)
 
-    mapper.backend.border_properties.alpha = 0.2
+    mapper.backend.borderparams.alpha = 0.2
     mapper.draw(subplot=312, fig=fig)
 
-    mapper.backend.border_properties.alpha = 1.0
-    mapper.backend.border_properties.strokecolor = 'black'
+    mapper.backend.borderparams.alpha = 1.0
+    mapper.backend.borderparams.color = 'black'
     mapper.draw(subplot=313, fig=fig)
 
     return fig

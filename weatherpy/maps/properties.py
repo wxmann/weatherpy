@@ -14,3 +14,14 @@ class Properties(dict):
         except KeyError:
             warnings.warn("Property: {} does not exist. Defaulting to None.")
             return None
+
+
+class Stroke(object):
+    @classmethod
+    def dup(cls, inst):
+        return cls(inst.color, inst.width, inst.alpha)
+
+    def __init__(self, color, width, alpha):
+        self.color = color
+        self.width = width
+        self.alpha = alpha
